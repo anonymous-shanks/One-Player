@@ -239,9 +239,11 @@ internal fun MediaPickerScreen(
         },
         bottomBar = {
             SelectionActionsSheet(
-                show = selectionManager.isInSelectionMode && selectionManager.allSelectedVideos.isNotEmpty(),
+                show = selectionManager.isInSelectionMode &&
+                    (selectionManager.allSelectedVideos.isNotEmpty() || selectionManager.selectedFolders.isNotEmpty()),
                 showRenameAction = selectionManager.isSingleVideoSelected,
                 showInfoAction = selectionManager.isSingleVideoSelected,
+                showExcludeAction = selectionManager.selectedFolders.isNotEmpty(),
                 onPlayAction = {
                     val videoUris = selectionManager.allSelectedVideos.map { it.uriString.toUri() }
                     onPlayVideos(videoUris)
@@ -270,6 +272,11 @@ internal fun MediaPickerScreen(
                     } else {
                         showDeleteVideosConfirmation = true
                     }
+                },
+                onExcludeAction = {
+                    val paths = selectionManager.selectedFolders.map { it.path }
+                    onEvent(MediaPickerUiEvent.ExcludeFolders(paths))
+                    selectionManager.exitSelectionMode()
                 },
             )
         },
@@ -522,11 +529,13 @@ private fun SelectionActionsSheet(
     show: Boolean,
     showRenameAction: Boolean,
     showInfoAction: Boolean,
+    showExcludeAction: Boolean,
     onPlayAction: () -> Unit,
     onRenameAction: () -> Unit,
     onInfoAction: () -> Unit,
     onShareAction: () -> Unit,
     onDeleteAction: () -> Unit,
+    onExcludeAction: () -> Unit,
 ) {
     AnimatedVisibility(
         visible = show,
@@ -570,6 +579,13 @@ private fun SelectionActionsSheet(
                 text = stringResource(id = R.string.delete),
                 onClick = onDeleteAction,
             )
+            if (showExcludeAction) {
+                SelectionActionItem(
+                    imageVector = NextIcons.FolderOff,
+                    text = stringResource(id = R.string.exclude),
+                    onClick = onExcludeAction,
+                )
+            }
         }
     }
 }

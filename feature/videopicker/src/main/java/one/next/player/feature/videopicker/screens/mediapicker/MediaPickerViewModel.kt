@@ -73,6 +73,7 @@ class MediaPickerViewModel @Inject constructor(
             is MediaPickerUiEvent.DeleteFolders -> deleteFolders(event.folders)
             is MediaPickerUiEvent.DeleteVideos -> deleteVideos(event.videos)
             is MediaPickerUiEvent.ShareVideos -> shareVideos(event.videos)
+            is MediaPickerUiEvent.ExcludeFolders -> excludeFolders(event.paths)
             is MediaPickerUiEvent.Refresh -> refresh()
             is MediaPickerUiEvent.RenameVideo -> renameVideo(event.uri, event.to)
             is MediaPickerUiEvent.AddToSync -> addToMediaInfoSynchronizer(event.uri)
@@ -126,6 +127,14 @@ class MediaPickerViewModel @Inject constructor(
             preferencesRepository.updateApplicationPreferences { preferences }
         }
     }
+
+    private fun excludeFolders(paths: List<String>) {
+        viewModelScope.launch {
+            preferencesRepository.updateApplicationPreferences {
+                it.copy(excludeFolders = it.excludeFolders + paths.filter { path -> path !in it.excludeFolders })
+            }
+        }
+    }
 }
 
 @Stable
@@ -140,6 +149,7 @@ sealed interface MediaPickerUiEvent {
     data class DeleteVideos(val videos: List<String>) : MediaPickerUiEvent
     data class DeleteFolders(val folders: List<Folder>) : MediaPickerUiEvent
     data class ShareVideos(val videos: List<String>) : MediaPickerUiEvent
+    data class ExcludeFolders(val paths: List<String>) : MediaPickerUiEvent
     data object Refresh : MediaPickerUiEvent
     data class RenameVideo(val uri: Uri, val to: String) : MediaPickerUiEvent
     data class AddToSync(val uri: Uri) : MediaPickerUiEvent
