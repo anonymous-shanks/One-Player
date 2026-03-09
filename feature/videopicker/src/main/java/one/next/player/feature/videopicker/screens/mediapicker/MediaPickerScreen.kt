@@ -350,58 +350,63 @@ internal fun MediaPickerScreen(
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     .background(MaterialTheme.colorScheme.background),
             ) {
-                when (uiState.mediaDataState) {
-                    DataState.Loading -> {
-                        CenterCircularProgressBar(modifier = Modifier.fillMaxSize())
-                    }
-
-                    is DataState.Error -> {
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background,
-                        ) {
-                            Text(
-                                text = stringResource(id = R.string.unknown_error),
-                                modifier = Modifier.padding(16.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
+                PermissionMissingView(
+                    isGranted = permissionState.isGranted,
+                    showRationale = permissionState.shouldShowRationale,
+                    permission = permissionState.permission,
+                    launchPermissionRequest = { permissionState.launchPermissionRequest() },
+                ) {
+                    when (uiState.mediaDataState) {
+                        DataState.Loading -> {
+                            CenterCircularProgressBar(modifier = Modifier.fillMaxSize())
                         }
-                    }
 
-                    is DataState.Success -> {
-                        PullToRefreshBox(
-                            modifier = Modifier.fillMaxSize(),
-                            isRefreshing = uiState.refreshing,
-                            onRefresh = { onEvent(MediaPickerUiEvent.Refresh) },
-                        ) {
-                            val updatedScaffoldPadding = scaffoldPadding.copy(top = 0.dp, start = 0.dp)
-                            PermissionMissingView(
-                                isGranted = permissionState.isGranted,
-                                showRationale = permissionState.shouldShowRationale,
-                                permission = permissionState.permission,
-                                launchPermissionRequest = { permissionState.launchPermissionRequest() },
+                        is DataState.Error -> {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.background,
                             ) {
+                                Text(
+                                    text = stringResource(id = R.string.unknown_error),
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+
+                        is DataState.Success -> {
+                            PullToRefreshBox(
+                                modifier = Modifier.fillMaxSize(),
+                                isRefreshing = uiState.refreshing,
+                                onRefresh = { onEvent(MediaPickerUiEvent.Refresh) },
+                            ) {
+                                val updatedScaffoldPadding = scaffoldPadding.copy(top = 0.dp, start = 0.dp)
                                 val rootFolder = uiState.mediaDataState.value
                                 if (rootFolder == null || rootFolder.folderList.isEmpty() && rootFolder.mediaList.isEmpty()) {
                                     NoVideosFound(contentPadding = updatedScaffoldPadding)
-                                    return@PermissionMissingView
+                                } else {
+                                    MediaView(
+                                        rootFolder = rootFolder,
+                                        preferences = uiState.preferences,
+                                        onFolderClick = onFolderClick,
+                                        onVideoClick = { onPlayVideo(it) },
+                                        selectionManager = selectionManager,
+                                        lazyGridState = lazyGridState,
+                                        contentPadding = updatedScaffoldPadding,
+                                        onVideoLoaded = { onEvent(MediaPickerUiEvent.AddToSync(it)) },
+                                    )
                                 }
-
-                                MediaView(
-                                    rootFolder = rootFolder,
-                                    preferences = uiState.preferences,
-                                    onFolderClick = onFolderClick,
-                                    onVideoClick = { onPlayVideo(it) },
-                                    selectionManager = selectionManager,
-                                    lazyGridState = lazyGridState,
-                                    contentPadding = updatedScaffoldPadding,
-                                    onVideoLoaded = { onEvent(MediaPickerUiEvent.AddToSync(it)) },
-                                )
                             }
                         }
                     }
                 }
             }
+        }
+    }
+
+    LaunchedEffect(permissionState.isGranted) {
+        if (permissionState.isGranted) {
+            onEvent(MediaPickerUiEvent.Refresh)
         }
     }
 
@@ -574,11 +579,6 @@ private fun SelectionActionsSheet(
                 text = stringResource(id = R.string.share),
                 onClick = onShareAction,
             )
-            SelectionActionItem(
-                imageVector = NextIcons.Delete,
-                text = stringResource(id = R.string.delete),
-                onClick = onDeleteAction,
-            )
             if (showExcludeAction) {
                 SelectionActionItem(
                     imageVector = NextIcons.FolderOff,
@@ -586,6 +586,11 @@ private fun SelectionActionsSheet(
                     onClick = onExcludeAction,
                 )
             }
+            SelectionActionItem(
+                imageVector = NextIcons.Delete,
+                text = stringResource(id = R.string.delete),
+                onClick = onDeleteAction,
+            )
         }
     }
 }
