@@ -1,6 +1,8 @@
 package one.next.player.settings.screens.about
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -28,13 +31,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mikepenz.aboutlibraries.Libs
-import com.mikepenz.aboutlibraries.util.withContext
+import one.next.player.core.common.Logger
 import one.next.player.core.ui.R
 import one.next.player.core.ui.components.NextSegmentedListItem
 import one.next.player.core.ui.components.NextTopAppBar
 import one.next.player.core.ui.designsystem.NextIcons
 import one.next.player.core.ui.extensions.plus
 import one.next.player.core.ui.extensions.withBottomFallback
+import one.next.player.feature.settings.R as SettingsR
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -43,6 +47,7 @@ fun LibrariesScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val libs = remember(context) { loadLibraries(context) }
 
     Scaffold(
         topBar = {
@@ -60,7 +65,22 @@ fun LibrariesScreen(
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) { innerPadding ->
-        val libs = remember { Libs.Builder().withContext(context).build() }
+        if (libs == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding.withBottomFallback())
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(id = R.string.unknown_error),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            return@Scaffold
+        }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -119,3 +139,18 @@ fun LibrariesScreen(
         }
     }
 }
+
+private fun loadLibraries(context: Context): Libs? = try {
+    val librariesJson = context.resources.openRawResource(SettingsR.raw.aboutlibraries)
+        .bufferedReader()
+        .use { it.readText() }
+
+    Libs.Builder()
+        .withJson(librariesJson)
+        .build()
+} catch (throwable: Throwable) {
+    Logger.logError(TAG, "Failed to load libraries metadata", throwable)
+    null
+}
+
+private const val TAG = "LibrariesScreen"

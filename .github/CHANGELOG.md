@@ -1,12 +1,10 @@
-- 修复外部关闭权限后「忽略 .nomedia」开关状态不同步的问题
-- 修复权限被撤销时媒体库页面无法显示权限请求界面的问题
-- 调整长按选择操作栏按钮顺序，删除按钮固定在最右侧
+- 修复正式版本点击“程序库”页面时因 aboutlibraries 元数据被资源压缩移除而闪退的问题
+- 改为显式加载 aboutlibraries 元数据资源，确保程序库列表在 release 构建中正常显示
 
 <details>
 <summary>English Version</summary>
 
-- Fixed .nomedia toggle not syncing when all-files-access permission is revoked externally
-- Fixed permission prompt not showing in media library when permission is revoked
-- Reordered selection action buttons so Delete is always at the rightmost position
+- Fixed a crash when opening the Libraries page in release builds after the aboutlibraries metadata was removed by resource shrinking
+- Switched to explicitly loading the aboutlibraries metadata resource so the Libraries list renders correctly in release builds
 
 </details>
