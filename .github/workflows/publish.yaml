@@ -2,8 +2,8 @@ name: Android 正式版发布
 
 on:
   push:
-    branches:
-      - 'release/v*.*.*'
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       version:
@@ -69,11 +69,11 @@ jobs:
           if [ -n "${{ github.event.inputs.version }}" ]; then
             release_version="${{ github.event.inputs.version }}"
             echo "📝 使用手动输入版本：$release_version"
-          elif [[ "$GITHUB_REF" == refs/heads/release/v* ]]; then
-            release_version="${GITHUB_REF#refs/heads/release/v}"
-            echo "🌿 从发布分支读取版本：$release_version"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            release_version="${GITHUB_REF#refs/tags/v}"
+            echo "🏷️ 从标签读取版本：$release_version"
           else
-            echo "::error::无法确定发布版本号，请提供 workflow_dispatch 输入或使用 release/v*.*.* 分支"
+            echo "::error::无法确定发布版本号，请提供 workflow_dispatch 输入或推送 v*.*.* 标签"
             exit 1
           fi
 
