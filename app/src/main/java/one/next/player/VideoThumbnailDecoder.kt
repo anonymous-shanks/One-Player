@@ -28,6 +28,11 @@ class VideoThumbnailDecoder(
     private val diskCache: Lazy<DiskCache?>,
 ) : Decoder {
 
+    companion object {
+        // 缩略图最大尺寸，避免 4K 全分辨率 Bitmap 占用过多内存
+        private const val MAX_THUMBNAIL_SIZE = 512
+    }
+
     private val diskCacheKey: String
         get() = options.diskCacheKey ?: run {
             val metadata = source.metadata
@@ -41,14 +46,21 @@ class VideoThumbnailDecoder(
     @OptIn(ExperimentalCoilApi::class)
     override suspend fun decode(): DecodeResult {
         readFromDiskCache()?.use { snapshot ->
-            val cachedBitmap = snapshot.data.toFile().inputStream().use { input ->
-                BitmapFactory.decodeStream(input)
-            }
+            val file = snapshot.data.toFile()
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.path, bounds)
+
+            val cachedBitmap = BitmapFactory.decodeFile(
+                file.path,
+                BitmapFactory.Options().apply {
+                    inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight)
+                },
+            )
 
             if (cachedBitmap != null) {
                 return DecodeResult(
                     image = cachedBitmap.toDrawable(options.context.resources).asImage(),
-                    isSampled = false,
+                    isSampled = true,
                 )
             }
         }
@@ -56,43 +68,54 @@ class VideoThumbnailDecoder(
         return MediaMetadataRetriever().use { retriever ->
             retriever.setDataSource(source)
 
-            // First, try to get embedded picture (album art/metadata thumbnail)
             val embeddedPicture = retriever.embeddedPicture?.let { pictureBytes ->
-                BitmapFactory.decodeByteArray(pictureBytes, 0, pictureBytes.size)
+                decodeSampledBitmap(pictureBytes)
             }
 
-            // If embedded picture exists, use it directly
             val rawBitmap = if (embeddedPicture != null) {
                 embeddedPicture
             } else {
-                // No embedded picture - apply the selected strategy
                 val videoDuration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                     ?.toLongOrNull() ?: 0L
 
                 when (strategy) {
                     is ThumbnailStrategy.FirstFrame -> {
-                        retriever.getFrameAtTime(0)
+                        retriever.getScaledFrameAtTime(
+                            0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                            MAX_THUMBNAIL_SIZE, MAX_THUMBNAIL_SIZE,
+                        )
                     }
                     is ThumbnailStrategy.FrameAtPercentage -> {
-                        retriever.getFrameAtTime((videoDuration * strategy.percentage * 1000).toLong())
+                        retriever.getScaledFrameAtTime(
+                            (videoDuration * strategy.percentage * 1000).toLong(),
+                            MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                            MAX_THUMBNAIL_SIZE, MAX_THUMBNAIL_SIZE,
+                        )
                     }
                     is ThumbnailStrategy.Hybrid -> {
-                        val firstFrame = retriever.getFrameAtTime(0)
+                        val firstFrame = retriever.getScaledFrameAtTime(
+                            0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                            MAX_THUMBNAIL_SIZE, MAX_THUMBNAIL_SIZE,
+                        )
                         if (firstFrame != null && isSolidColor(firstFrame)) {
-                            retriever.getFrameAtTime((videoDuration * strategy.percentage * 1000).toLong())
+                            retriever.getScaledFrameAtTime(
+                                (videoDuration * strategy.percentage * 1000).toLong(),
+                                MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                                MAX_THUMBNAIL_SIZE, MAX_THUMBNAIL_SIZE,
+                            )
                         } else {
                             firstFrame
                         }
                     }
                 }
-            } ?: getThumbnailFromMediaInfo()
+            } ?: getThumbnailFromMediaInfo()?.scaleToFit()
                 ?: throw IllegalStateException("Failed to get video thumbnail.")
 
             val bitmap = writeToDiskCache(rawBitmap)
 
             DecodeResult(
                 image = bitmap.toDrawable(options.context.resources).asImage(),
-                isSampled = false,
+                isSampled = true,
             )
         }
     }
@@ -133,6 +156,37 @@ class VideoThumbnailDecoder(
         mediaInfo?.getFrame()?.also { mediaInfo.release() }
     } catch (e: Exception) {
         null
+    }
+
+    private fun decodeSampledBitmap(bytes: ByteArray): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        return BitmapFactory.decodeByteArray(
+            bytes, 0, bytes.size,
+            BitmapFactory.Options().apply {
+                inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight)
+            },
+        )
+    }
+
+    private fun calculateInSampleSize(width: Int, height: Int): Int {
+        if (width <= MAX_THUMBNAIL_SIZE && height <= MAX_THUMBNAIL_SIZE) return 1
+        var inSampleSize = 1
+        val maxDimension = maxOf(width, height)
+        while (maxDimension / (inSampleSize * 2) >= MAX_THUMBNAIL_SIZE) {
+            inSampleSize *= 2
+        }
+        return inSampleSize
+    }
+
+    private fun Bitmap.scaleToFit(): Bitmap {
+        if (width <= MAX_THUMBNAIL_SIZE && height <= MAX_THUMBNAIL_SIZE) return this
+        val scale = MAX_THUMBNAIL_SIZE.toFloat() / maxOf(width, height)
+        val scaledWidth = (width * scale).toInt()
+        val scaledHeight = (height * scale).toInt()
+        val scaled = Bitmap.createScaledBitmap(this, scaledWidth, scaledHeight, true)
+        if (scaled !== this) recycle()
+        return scaled
     }
 
     private fun readFromDiskCache(): DiskCache.Snapshot? = if (options.diskCachePolicy.readEnabled) {
