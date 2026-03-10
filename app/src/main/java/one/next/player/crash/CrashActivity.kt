@@ -161,7 +161,7 @@ class CrashActivity : AppCompatActivity() {
         exceptionString: String,
         logcat: String,
     ) = withContext(Dispatchers.IO) {
-        val file = File(cacheDir, "next_player_logs.txt").also {
+        val file = File(cacheDir, "one_player_logs.txt").also {
             if (it.exists()) it.delete()
             it.createNewFile()
         }
