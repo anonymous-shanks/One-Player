@@ -54,7 +54,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.NextRenderersFactory
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
-import io.github.peerless2012.ass.media.kt.buildWithAssSupport
+import io.github.peerless2012.ass.media.AssHandler
+import io.github.peerless2012.ass.media.kt.withAssMkvSupport
+import io.github.peerless2012.ass.media.kt.withAssSupport
+import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
 import io.github.peerless2012.ass.media.type.AssRenderType
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -99,6 +102,7 @@ import one.next.player.feature.player.extensions.subtitleTrackIndex
 import one.next.player.feature.player.extensions.switchTrack
 import one.next.player.feature.player.extensions.uriToSubtitleConfiguration
 import one.next.player.feature.player.extensions.videoZoom
+import one.next.player.feature.player.subtitle.AssHandlerRegistry
 
 @OptIn(UnstableApi::class)
 @AndroidEntryPoint
@@ -130,6 +134,7 @@ class PlayerService : MediaSessionService() {
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var currentVolumeGain: Int = 0
     private val mediaParserRetried = mutableSetOf<String>()
+    private var assHandler: AssHandler? = null
 
     private val playbackStateListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -814,7 +819,21 @@ class PlayerService : MediaSessionService() {
             )
         }
 
+        val assHandler = AssHandler(renderType = AssRenderType.OVERLAY_CANVAS)
+        this.assHandler = assHandler
+        AssHandlerRegistry.register(assHandler)
+        val assSubtitleParserFactory = AssSubtitleParserFactory(assHandler)
+        val mediaSourceFactory = DefaultMediaSourceFactory(
+            DefaultDataSource.Factory(applicationContext),
+            DefaultExtractorsFactory().withAssMkvSupport(
+                assSubtitleParserFactory = assSubtitleParserFactory,
+                assHandler = assHandler,
+            ),
+        ).setSubtitleParserFactory(assSubtitleParserFactory)
+
         val player = ExoPlayer.Builder(applicationContext)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .setRenderersFactory(renderersFactory.withAssSupport(assHandler))
             .setTrackSelector(trackSelector)
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -824,12 +843,9 @@ class PlayerService : MediaSessionService() {
                 playerPreferences.requireAudioFocus,
             )
             .setHandleAudioBecomingNoisy(playerPreferences.pauseOnHeadsetDisconnect)
-            .buildWithAssSupport(
-                context = applicationContext,
-                renderType = AssRenderType.CUES,
-                renderersFactory = renderersFactory,
-            )
+            .build()
             .also {
+                assHandler.init(it)
                 it.addListener(playbackStateListener)
                 it.pauseAtEndOfMediaItems = !playerPreferences.autoplay
                 it.repeatMode = when (playerPreferences.loopMode) {
@@ -877,6 +893,8 @@ class PlayerService : MediaSessionService() {
         super.onDestroy()
         loudnessEnhancer?.release()
         loudnessEnhancer = null
+        assHandler?.let(AssHandlerRegistry::unregister)
+        assHandler = null
         mediaSession?.run {
             player.clearMediaItems()
             player.stop()
