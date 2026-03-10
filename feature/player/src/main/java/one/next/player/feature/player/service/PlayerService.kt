@@ -294,10 +294,11 @@ class PlayerService : MediaSessionService() {
             val rotation = format?.rotationDegrees ?: 0
             Log.d(TAG, "onRenderedFirstFrame: format=${width}x$height, rot=$rotation, duration=${player.duration}")
 
+            val duration = player.duration.takeIf { it != C.TIME_UNSET }
             player.replaceMediaItem(
                 player.currentMediaItemIndex,
                 currentMediaItem.copy(
-                    durationMs = player.duration,
+                    durationMs = duration,
                     videoWidth = width,
                     videoHeight = height,
                     videoRotation = rotation,
