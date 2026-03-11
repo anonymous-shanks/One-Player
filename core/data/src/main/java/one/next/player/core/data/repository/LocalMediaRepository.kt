@@ -24,9 +24,19 @@ class LocalMediaRepository @Inject constructor(
     private val directoryDao: DirectoryDao,
 ) : MediaRepository {
 
-    override fun getVideosFlow(): Flow<List<Video>> = mediumDao.getAllWithInfo().map { it.map(MediumWithInfo::toVideo) }
+    override fun getVideosFlow(): Flow<List<Video>> = mediumDao.getAllWithInfo().map { media ->
+        media.map(MediumWithInfo::toVideo)
+    }
 
-    override fun getVideosFlowFromFolderPath(folderPath: String): Flow<List<Video>> = mediumDao.getAllWithInfoFromDirectory(folderPath).map { it.map(MediumWithInfo::toVideo) }
+    override fun getVideosFlowFromFolderPath(folderPath: String): Flow<List<Video>> = mediumDao
+        .getAllWithInfoFromDirectory(folderPath)
+        .map { media ->
+            media.map(MediumWithInfo::toVideo)
+        }
+
+    override fun getRecycleBinVideosFlow(): Flow<List<Video>> = mediumDao.getAllWithInfo().map { media ->
+        media.filter { it.isMarkedInRecycleBin() }.map(MediumWithInfo::toVideo)
+    }
 
     override fun getFoldersFlow(): Flow<List<Folder>> = directoryDao.getAllWithMedia().map { it.map(DirectoryWithMedia::toFolder) }
 
@@ -144,4 +154,31 @@ class LocalMediaRepository @Inject constructor(
             ),
         )
     }
+
+    override suspend fun moveVideosToRecycleBin(uris: List<String>) {
+        updateRecycleBinState(uris = uris, isInRecycleBin = true)
+    }
+
+    override suspend fun restoreVideosFromRecycleBin(uris: List<String>) {
+        updateRecycleBinState(uris = uris, isInRecycleBin = false)
+    }
+
+    private suspend fun updateRecycleBinState(
+        uris: List<String>,
+        isInRecycleBin: Boolean,
+    ) {
+        if (uris.isEmpty()) return
+
+        val distinctUris = uris.distinct()
+        val existingStates = mediumStateDao.getAll(distinctUris).associateBy(MediumStateEntity::uriString)
+        val updatedStates = distinctUris.map { uri ->
+            (existingStates[uri] ?: MediumStateEntity(uriString = uri)).copy(
+                isInRecycleBin = isInRecycleBin,
+            )
+        }
+
+        mediumStateDao.upsertAll(updatedStates)
+    }
+
+    private fun MediumWithInfo.isMarkedInRecycleBin(): Boolean = mediumStateEntity?.isInRecycleBin == true
 }

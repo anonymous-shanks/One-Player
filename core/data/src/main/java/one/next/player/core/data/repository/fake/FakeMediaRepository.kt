@@ -12,12 +12,33 @@ class FakeMediaRepository : MediaRepository {
 
     val videos = mutableListOf<Video>()
     val directories = mutableListOf<Folder>()
+    private val recycleBinUris = mutableSetOf<String>()
 
-    override fun getVideosFlow(): Flow<List<Video>> = flowOf(videos)
+    override fun getVideosFlow(): Flow<List<Video>> = flowOf(
+        videos.map { video ->
+            video.copy(isInRecycleBin = video.uriString in recycleBinUris)
+        },
+    )
 
-    override fun getVideosFlowFromFolderPath(folderPath: String): Flow<List<Video>> = flowOf(videos)
+    override fun getVideosFlowFromFolderPath(folderPath: String): Flow<List<Video>> = flowOf(
+        videos.filter { it.parentPath == folderPath }.map { video ->
+            video.copy(isInRecycleBin = video.uriString in recycleBinUris)
+        },
+    )
 
-    override fun getFoldersFlow(): Flow<List<Folder>> = flowOf(directories)
+    override fun getRecycleBinVideosFlow(): Flow<List<Video>> = flowOf(
+        videos.filter { it.uriString in recycleBinUris }.map { it.copy(isInRecycleBin = true) },
+    )
+
+    override fun getFoldersFlow(): Flow<List<Folder>> = flowOf(
+        directories.map { folder ->
+            folder.copy(
+                mediaList = folder.mediaList.map { video ->
+                    video.copy(isInRecycleBin = video.uriString in recycleBinUris)
+                },
+            )
+        },
+    )
 
     override suspend fun getVideoByUri(uri: String): Video? = videos.find { it.path == uri }
 
@@ -51,5 +72,13 @@ class FakeMediaRepository : MediaRepository {
     }
 
     override suspend fun updateSubtitleSpeed(uri: String, speed: Float) {
+    }
+
+    override suspend fun moveVideosToRecycleBin(uris: List<String>) {
+        recycleBinUris.addAll(uris)
+    }
+
+    override suspend fun restoreVideosFromRecycleBin(uris: List<String>) {
+        recycleBinUris.removeAll(uris.toSet())
     }
 }
