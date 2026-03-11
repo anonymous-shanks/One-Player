@@ -55,6 +55,7 @@ class DebugCommandReceiver : BroadcastReceiver() {
     }
 
     private suspend fun refreshLibrary() {
+        Logger.logInfo(TAG, "refreshLibrary start")
         mediaSynchronizer.refresh(null)
         mediaSynchronizer.startSync()
         Logger.logInfo(TAG, "Triggered media library refresh")

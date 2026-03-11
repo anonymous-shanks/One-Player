@@ -1,6 +1,7 @@
 package one.next.player.core.media.sync
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.core.net.toUri
 import coil3.ImageLoader
@@ -89,33 +90,86 @@ class LocalMediaInfoSynchronizer @Inject constructor(
 
     private suspend fun performSync(uri: Uri) {
         val medium = mediumDao.getWithInfo(uri.toString()) ?: return
-        if (medium.videoStreamInfo != null) return
+        val mediumEntity = medium.mediumEntity
+        val needsLightweightMetadata = mediumEntity.duration <= 0 || mediumEntity.width <= 0 || mediumEntity.height <= 0
+        val needsFullMediaInfo = medium.videoStreamInfo == null
+
+        if (!needsLightweightMetadata && !needsFullMediaInfo) return
+
+        var updatedMedium = mediumEntity
+
+        if (needsLightweightMetadata) {
+            extractBasicMetadata(uri)?.let { basicMetadata ->
+                updatedMedium = updatedMedium.copy(
+                    duration = basicMetadata.duration ?: updatedMedium.duration,
+                    width = basicMetadata.width ?: updatedMedium.width,
+                    height = basicMetadata.height ?: updatedMedium.height,
+                )
+            }
+        }
+
+        if (!needsFullMediaInfo) {
+            if (updatedMedium != mediumEntity) {
+                mediumDao.upsert(updatedMedium)
+            }
+            return
+        }
 
         val mediaInfo = runCatching {
             MediaInfoBuilder().from(context = context, uri = uri).build() ?: throw NullPointerException()
         }.onFailure { throwable ->
             Logger.logError(TAG, "Failed to read media info for $uri", throwable)
-        }.getOrNull() ?: return
-        mediaInfo.release()
-
-        val videoStreamInfo = mediaInfo.videoStream?.toVideoStreamInfoEntity(medium.mediumEntity.uriString)
-        val audioStreamsInfo = mediaInfo.audioStreams.map {
-            it.toAudioStreamInfoEntity(medium.mediumEntity.uriString)
-        }
-        val subtitleStreamsInfo = mediaInfo.subtitleStreams.map {
-            it.toSubtitleStreamInfoEntity(medium.mediumEntity.uriString)
+        }.getOrNull() ?: run {
+            if (updatedMedium != mediumEntity) {
+                mediumDao.upsert(updatedMedium)
+            }
+            return
         }
 
-        mediumDao.upsert(medium.mediumEntity.copy(format = mediaInfo.format))
-        videoStreamInfo?.let { mediumDao.upsertVideoStreamInfo(it) }
-        audioStreamsInfo.onEach { mediumDao.upsertAudioStreamInfo(it) }
-        subtitleStreamsInfo.onEach { mediumDao.upsertSubtitleStreamInfo(it) }
+        try {
+            val videoStreamInfo = mediaInfo.videoStream?.toVideoStreamInfoEntity(updatedMedium.uriString)
+            val audioStreamsInfo = mediaInfo.audioStreams.map {
+                it.toAudioStreamInfoEntity(updatedMedium.uriString)
+            }
+            val subtitleStreamsInfo = mediaInfo.subtitleStreams.map {
+                it.toSubtitleStreamInfoEntity(updatedMedium.uriString)
+            }
+
+            mediumDao.upsert(updatedMedium.copy(format = mediaInfo.format))
+            videoStreamInfo?.let { mediumDao.upsertVideoStreamInfo(it) }
+            audioStreamsInfo.onEach { mediumDao.upsertAudioStreamInfo(it) }
+            subtitleStreamsInfo.onEach { mediumDao.upsertSubtitleStreamInfo(it) }
+        } finally {
+            mediaInfo.release()
+        }
+    }
+
+    private fun extractBasicMetadata(uri: Uri): BasicMediaMetadata? {
+        val retriever = MediaMetadataRetriever()
+        return runCatching {
+            retriever.setDataSource(context, uri)
+            BasicMediaMetadata(
+                duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
+                width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull(),
+                height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull(),
+            )
+        }.onFailure { throwable ->
+            Logger.logError(TAG, "Failed to read basic media metadata for $uri", throwable)
+        }.getOrNull().also {
+            retriever.release()
+        }
     }
 
     companion object {
         private const val TAG = "MediaInfoSynchronizer"
     }
 }
+
+private data class BasicMediaMetadata(
+    val duration: Long?,
+    val width: Int?,
+    val height: Int?,
+)
 
 private fun VideoStream.toVideoStreamInfoEntity(mediumUri: String) = VideoStreamInfoEntity(
     index = index,
