@@ -25,7 +25,6 @@ import java.io.InputStream
 import java.net.URL
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
-import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -192,34 +191,35 @@ fun Context.getMediaContentUri(uri: Uri): Uri? {
     return null
 }
 
-suspend fun Context.scanPaths(paths: List<String>): Boolean = suspendCoroutine { continuation ->
-    if (paths.isEmpty()) {
-        continuation.resumeWith(Result.success(true))
-        return@suspendCoroutine
-    }
+suspend fun Context.scanPaths(paths: List<String>): Boolean {
+    if (paths.isEmpty()) return true
 
-    try {
-        var remaining = paths.size
-        var hasSuccess = false
-        MediaScannerConnection.scanFile(
-            this@scanPaths,
-            paths.toTypedArray(),
-            null,
-        ) { path, uri ->
-            Logger.logDebug("ScanPath", "scanPaths: path=$path, uri=$uri")
-            synchronized(paths) {
-                if (uri != null) {
-                    hasSuccess = true
+    return withTimeoutOrNull(15_000L) {
+        suspendCancellableCoroutine { continuation ->
+            try {
+                var remaining = paths.size
+                var hasSuccess = false
+                MediaScannerConnection.scanFile(
+                    this@scanPaths,
+                    paths.toTypedArray(),
+                    null,
+                ) { path, uri ->
+                    Logger.logDebug("ScanPath", "scanPaths: path=$path, uri=$uri")
+                    synchronized(paths) {
+                        if (uri != null) {
+                            hasSuccess = true
+                        }
+                        remaining--
+                        if (remaining == 0) {
+                            continuation.resumeWith(Result.success(hasSuccess))
+                        }
+                    }
                 }
-                remaining--
-                if (remaining == 0) {
-                    continuation.resumeWith(Result.success(hasSuccess))
-                }
+            } catch (e: Exception) {
+                continuation.resumeWith(Result.failure(e))
             }
         }
-    } catch (e: Exception) {
-        continuation.resumeWith(Result.failure(e))
-    }
+    } ?: false
 }
 
 // 扫描单个文件并从回调获取 content URI，超时返回 null
