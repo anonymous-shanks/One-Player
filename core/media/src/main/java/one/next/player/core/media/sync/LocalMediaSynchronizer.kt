@@ -318,13 +318,18 @@ class LocalMediaSynchronizer @Inject constructor(
     // 对缺少元数据的媒体自动排队 MediaInfo 同步
     private suspend fun scheduleMediaInfoSync() {
         val allWithInfo = mediumDao.getAllWithInfo().first()
+        var count = 0
         allWithInfo.forEach { mediumWithInfo ->
             val entity = mediumWithInfo.mediumEntity
             val needsMetadata = entity.duration <= 0 || entity.width <= 0 || entity.height <= 0
             val needsStreamInfo = mediumWithInfo.videoStreamInfo == null
             if (needsMetadata || needsStreamInfo) {
                 mediaInfoSynchronizer.sync(entity.uriString.toUri())
+                count++
             }
+        }
+        if (count > 0) {
+            Logger.logInfo(TAG, "scheduleMediaInfoSync queued $count items")
         }
     }
 

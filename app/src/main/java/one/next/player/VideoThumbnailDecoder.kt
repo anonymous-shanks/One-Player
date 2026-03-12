@@ -1,7 +1,9 @@
 package one.next.player
 
+import android.content.ContentUris
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.provider.MediaStore
 import android.util.Size
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.get
@@ -35,10 +37,15 @@ class VideoThumbnailDecoder(
         private const val MAX_THUMBNAIL_SIZE = 512
     }
 
-    // 使用系统缩略图服务，对 content:// URI 高效且自带缓存
+    // 优先使用系统缩略图服务，质量优于 FFmpeg 提取帧
     private fun tryLoadSystemThumbnail(): Bitmap? {
-        val metadata = source.metadata as? ContentMetadata ?: return null
-        val uri = metadata.uri.toAndroidUri()
+        val uri = when (val metadata = source.metadata) {
+            is ContentMetadata -> metadata.uri.toAndroidUri()
+            else -> {
+                if (source.fileSystem !== FileSystem.SYSTEM) return null
+                findContentUriForPath(source.file().toFile().path) ?: return null
+            }
+        }
         val start = System.currentTimeMillis()
         return try {
             options.context.contentResolver.loadThumbnail(
@@ -50,6 +57,30 @@ class VideoThumbnailDecoder(
             }
         } catch (e: Exception) {
             Logger.logInfo(TAG, "systemThumbnail fail ${System.currentTimeMillis() - start}ms uri=$uri err=${e.message}")
+            null
+        }
+    }
+
+    // 通过文件路径查询 MediaStore 获取 content:// URI
+    private fun findContentUriForPath(path: String): android.net.Uri? {
+        val collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val projection = arrayOf(MediaStore.Video.Media._ID)
+        return try {
+            options.context.contentResolver.query(
+                collection,
+                projection,
+                "${MediaStore.Video.Media.DATA} = ?",
+                arrayOf(path),
+                null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID))
+                    ContentUris.withAppendedId(collection, id)
+                } else {
+                    null
+                }
+            }
+        } catch (e: Exception) {
             null
         }
     }
@@ -186,7 +217,7 @@ class VideoThumbnailDecoder(
         val editor = diskCache.value?.openEditor(diskCacheKey) ?: return inBitmap
         try {
             editor.data.toFile().outputStream().use { output ->
-                inBitmap.compress(Bitmap.CompressFormat.JPEG, 40, output)
+                inBitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
             }
             editor.commitAndOpenSnapshot()?.use { snapshot ->
                 val outBitmap = snapshot.data.toFile().inputStream().use { input ->

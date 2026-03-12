@@ -121,6 +121,8 @@ class MainActivity : AppCompatActivity() {
                         synchronizer.startSync()
                         if (lastAutoRefreshAt != 0L) return@LaunchedEffect
 
+                        // 延迟 refresh，让 UI 先用 DB 缓存数据渲染
+                        kotlinx.coroutines.delay(2000)
                         synchronizer.refresh()
                         lastAutoRefreshAt = SystemClock.elapsedRealtime()
                     }

@@ -1,7 +1,6 @@
 package one.next.player.core.media.sync
 
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.core.net.toUri
 import coil3.ImageLoader
@@ -88,43 +87,29 @@ class LocalMediaInfoSynchronizer @Inject constructor(
         }
     }
 
+    // 全部走 FFmpeg，不使用 MediaMetadataRetriever
     private suspend fun performSync(uri: Uri) {
         val medium = mediumDao.getWithInfo(uri.toString()) ?: return
         val mediumEntity = medium.mediumEntity
-        val needsLightweightMetadata = mediumEntity.duration <= 0 || mediumEntity.width <= 0 || mediumEntity.height <= 0
-        val needsFullMediaInfo = medium.videoStreamInfo == null
+        val needsMetadata = mediumEntity.duration <= 0 || mediumEntity.width <= 0 || mediumEntity.height <= 0
+        val needsStreamInfo = medium.videoStreamInfo == null
 
-        if (!needsLightweightMetadata && !needsFullMediaInfo) return
-
-        var updatedMedium = mediumEntity
-
-        // 仅在已有完整 MediaInfo 时用 MediaMetadataRetriever 补全基础元数据
-        // 需完整 MediaInfo 时从 FFmpeg 结果提取，避免 MediaMetadataRetriever 在大文件上阻塞
-        if (needsLightweightMetadata && !needsFullMediaInfo) {
-            extractBasicMetadata(uri)?.let { basicMetadata ->
-                updatedMedium = updatedMedium.copy(
-                    duration = basicMetadata.duration ?: updatedMedium.duration,
-                    width = basicMetadata.width ?: updatedMedium.width,
-                    height = basicMetadata.height ?: updatedMedium.height,
-                )
-            }
-            if (updatedMedium != mediumEntity) {
-                mediumDao.upsert(updatedMedium)
-            }
-            return
-        }
-
-        if (!needsFullMediaInfo) return
+        if (!needsMetadata && !needsStreamInfo) return
 
         val mediaInfo = runCatching {
-            MediaInfoBuilder().from(context = context, uri = uri).build() ?: throw NullPointerException()
+            if (uri.scheme == "file") {
+                val path = uri.path ?: throw IllegalArgumentException("No path in file URI: $uri")
+                MediaInfoBuilder().from(filePath = path).build()
+            } else {
+                MediaInfoBuilder().from(context = context, uri = uri).build()
+            } ?: throw NullPointerException("MediaInfoBuilder returned null for $uri")
         }.onFailure { throwable ->
             Logger.logError(TAG, "Failed to read media info for $uri", throwable)
         }.getOrNull() ?: return
 
         try {
-            // 从 FFmpeg 结果补全基础元数据
-            if (needsLightweightMetadata) {
+            var updatedMedium = mediumEntity
+            if (needsMetadata) {
                 updatedMedium = updatedMedium.copy(
                     duration = mediaInfo.duration.takeIf { it > 0 } ?: updatedMedium.duration,
                     width = mediaInfo.videoStream?.frameWidth?.takeIf { it > 0 } ?: updatedMedium.width,
@@ -132,36 +117,26 @@ class LocalMediaInfoSynchronizer @Inject constructor(
                 )
             }
 
-            val videoStreamInfo = mediaInfo.videoStream?.toVideoStreamInfoEntity(updatedMedium.uriString)
-            val audioStreamsInfo = mediaInfo.audioStreams.map {
-                it.toAudioStreamInfoEntity(updatedMedium.uriString)
-            }
-            val subtitleStreamsInfo = mediaInfo.subtitleStreams.map {
-                it.toSubtitleStreamInfoEntity(updatedMedium.uriString)
+            if (needsStreamInfo) {
+                val videoStreamInfo = mediaInfo.videoStream?.toVideoStreamInfoEntity(updatedMedium.uriString)
+                val audioStreamsInfo = mediaInfo.audioStreams.map {
+                    it.toAudioStreamInfoEntity(updatedMedium.uriString)
+                }
+                val subtitleStreamsInfo = mediaInfo.subtitleStreams.map {
+                    it.toSubtitleStreamInfoEntity(updatedMedium.uriString)
+                }
+
+                mediumDao.upsert(updatedMedium.copy(format = mediaInfo.format))
+                videoStreamInfo?.let { mediumDao.upsertVideoStreamInfo(it) }
+                audioStreamsInfo.onEach { mediumDao.upsertAudioStreamInfo(it) }
+                subtitleStreamsInfo.onEach { mediumDao.upsertSubtitleStreamInfo(it) }
+            } else if (updatedMedium != mediumEntity) {
+                mediumDao.upsert(updatedMedium)
             }
 
-            mediumDao.upsert(updatedMedium.copy(format = mediaInfo.format))
-            videoStreamInfo?.let { mediumDao.upsertVideoStreamInfo(it) }
-            audioStreamsInfo.onEach { mediumDao.upsertAudioStreamInfo(it) }
-            subtitleStreamsInfo.onEach { mediumDao.upsertSubtitleStreamInfo(it) }
+            Logger.logInfo(TAG, "performSync ok uri=$uri duration=${updatedMedium.duration}")
         } finally {
             mediaInfo.release()
-        }
-    }
-
-    private fun extractBasicMetadata(uri: Uri): BasicMediaMetadata? {
-        val retriever = MediaMetadataRetriever()
-        return runCatching {
-            retriever.setDataSource(context, uri)
-            BasicMediaMetadata(
-                duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
-                width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull(),
-                height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull(),
-            )
-        }.onFailure { throwable ->
-            Logger.logError(TAG, "Failed to read basic media metadata for $uri", throwable)
-        }.getOrNull().also {
-            retriever.release()
         }
     }
 
@@ -169,12 +144,6 @@ class LocalMediaInfoSynchronizer @Inject constructor(
         private const val TAG = "MediaInfoSynchronizer"
     }
 }
-
-private data class BasicMediaMetadata(
-    val duration: Long?,
-    val width: Int?,
-    val height: Int?,
-)
 
 private fun VideoStream.toVideoStreamInfoEntity(mediumUri: String) = VideoStreamInfoEntity(
     index = index,
