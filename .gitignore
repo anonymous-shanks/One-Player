@@ -58,3 +58,14 @@ CLAUDE.md
 # Local audit artifacts
 audit/
 audit/**
+
+# Root-level temporary screenshots and xml files
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.gif
+/*.bmp
+/*.svg
+/*.avif
+/*.xml
