@@ -149,21 +149,21 @@ internal fun MediaPickerScreen(
     )
 
     var isFabExpanded by rememberSaveable { mutableStateOf(false) }
-    var showQuickSettingsDialog by rememberSaveable { mutableStateOf(false) }
-    var showUrlDialog by rememberSaveable { mutableStateOf(false) }
+    var shouldShowQuickSettingsDialog by rememberSaveable { mutableStateOf(false) }
+    var shouldShowUrlDialog by rememberSaveable { mutableStateOf(false) }
 
     var showRenameActionFor: Video? by rememberSaveable { mutableStateOf(null) }
     var showInfoActionFor: Video? by rememberSaveable { mutableStateOf(null) }
-    var showDeleteVideosConfirmation by rememberSaveable { mutableStateOf(false) }
+    var shouldShowDeleteVideosConfirmation by rememberSaveable { mutableStateOf(false) }
 
     val isLibraryMode = uiState.screenMode == MediaPickerScreenMode.LIBRARY
     val isRecycleBinMode = uiState.screenMode == MediaPickerScreenMode.RECYCLE_BIN
-    val showRecycleBinEntry = isLibraryMode &&
+    val shouldShowRecycleBinEntry = isLibraryMode &&
         uiState.folderName == null &&
-        uiState.preferences.recycleBinEnabled
+        uiState.preferences.isRecycleBinEnabled
     val deleteAction = when {
         isRecycleBinMode -> MediaPickerDeleteAction.PermanentlyDelete
-        uiState.preferences.recycleBinEnabled -> MediaPickerDeleteAction.MoveToRecycleBin
+        uiState.preferences.isRecycleBinEnabled -> MediaPickerDeleteAction.MoveToRecycleBin
         else -> MediaPickerDeleteAction.PermanentlyDelete
     }
     val selectedItemsSize = selectionManager.selectedFolders.size + selectionManager.selectedVideos.size
@@ -252,7 +252,7 @@ internal fun MediaPickerScreen(
                                     contentDescription = stringResource(id = R.string.search),
                                 )
                             }
-                            if (showRecycleBinEntry) {
+                            if (shouldShowRecycleBinEntry) {
                                 IconButton(onClick = onRecycleBinClick) {
                                     Icon(
                                         imageVector = NextIcons.DeleteSweep,
@@ -260,7 +260,7 @@ internal fun MediaPickerScreen(
                                     )
                                 }
                             }
-                            IconButton(onClick = { showQuickSettingsDialog = true }) {
+                            IconButton(onClick = { shouldShowQuickSettingsDialog = true }) {
                                 Icon(
                                     imageVector = NextIcons.DashBoard,
                                     contentDescription = stringResource(id = R.string.menu),
@@ -279,13 +279,13 @@ internal fun MediaPickerScreen(
         },
         bottomBar = {
             SelectionActionsSheet(
-                show = selectionManager.isInSelectionMode &&
+                shouldShowSelectionActionsSheet = selectionManager.isInSelectionMode &&
                     (selectionManager.allSelectedVideos.isNotEmpty() || selectionManager.selectedFolders.isNotEmpty()),
                 deleteAction = deleteAction,
-                showRestoreAction = isRecycleBinMode,
-                showRenameAction = selectionManager.isSingleVideoSelected && isLibraryMode,
-                showInfoAction = selectionManager.isSingleVideoSelected,
-                showExcludeAction = selectionManager.selectedFolders.isNotEmpty() && isLibraryMode,
+                shouldShowRestoreAction = isRecycleBinMode,
+                shouldShowRenameAction = selectionManager.isSingleVideoSelected && isLibraryMode,
+                shouldShowInfoAction = selectionManager.isSingleVideoSelected,
+                shouldShowExcludeAction = selectionManager.selectedFolders.isNotEmpty() && isLibraryMode,
                 onPlayAction = {
                     val videoUris = selectionManager.allSelectedVideos.map { it.uriString.toUri() }
                     onPlayVideos(videoUris)
@@ -314,12 +314,12 @@ internal fun MediaPickerScreen(
                 onDeleteAction = {
                     if (
                         deleteAction == MediaPickerDeleteAction.PermanentlyDelete &&
-                        MediaService.willSystemAsksForDeleteConfirmation()
+                        MediaService.shouldAskSystemForDeleteConfirmation()
                     ) {
                         onEvent(MediaPickerUiEvent.PermanentlyDeleteVideos(selectionManager.allSelectedVideos.map { it.uriString }))
                         selectionManager.clearSelection()
                     } else {
-                        showDeleteVideosConfirmation = true
+                        shouldShowDeleteVideosConfirmation = true
                     }
                 },
                 onExcludeAction = {
@@ -355,7 +355,7 @@ internal fun MediaPickerScreen(
                 FloatingActionButtonMenuItem(
                     onClick = {
                         isFabExpanded = false
-                        showUrlDialog = true
+                        shouldShowUrlDialog = true
                     },
                     icon = {
                         Icon(
@@ -401,7 +401,7 @@ internal fun MediaPickerScreen(
             ) {
                 PermissionMissingView(
                     isGranted = permissionState.isGranted,
-                    showRationale = permissionState.shouldShowRationale,
+                    shouldShowRationale = permissionState.shouldShowRationale,
                     permission = permissionState.permission,
                     launchPermissionRequest = { permissionState.launchPermissionRequest() },
                 ) {
@@ -426,7 +426,7 @@ internal fun MediaPickerScreen(
                         is DataState.Success -> {
                             PullToRefreshBox(
                                 modifier = Modifier.fillMaxSize(),
-                                isRefreshing = uiState.refreshing,
+                                isRefreshing = uiState.isRefreshing,
                                 onRefresh = { onEvent(MediaPickerUiEvent.Refresh) },
                             ) {
                                 val updatedScaffoldPadding = scaffoldPadding.copy(top = 0.dp, start = 0.dp)
@@ -476,17 +476,17 @@ internal fun MediaPickerScreen(
         selectionManager.exitSelectionMode()
     }
 
-    if (showQuickSettingsDialog) {
+    if (shouldShowQuickSettingsDialog) {
         QuickSettingsDialog(
             applicationPreferences = uiState.preferences,
-            onDismiss = { showQuickSettingsDialog = false },
+            onDismiss = { shouldShowQuickSettingsDialog = false },
             updatePreferences = { onEvent(MediaPickerUiEvent.UpdateMenu(it)) },
         )
     }
 
-    if (showUrlDialog) {
+    if (shouldShowUrlDialog) {
         NetworkUrlDialog(
-            onDismiss = { showUrlDialog = false },
+            onDismiss = { shouldShowUrlDialog = false },
             onDone = { onPlayVideo(it.toUri()) },
         )
     }
@@ -510,7 +510,7 @@ internal fun MediaPickerScreen(
         )
     }
 
-    if (showDeleteVideosConfirmation) {
+    if (shouldShowDeleteVideosConfirmation) {
         DeleteConfirmationDialog(
             selectedVideos = selectionManager.selectedVideos,
             selectedFolders = selectionManager.selectedFolders,
@@ -526,9 +526,9 @@ internal fun MediaPickerScreen(
                     }
                 }
                 selectionManager.clearSelection()
-                showDeleteVideosConfirmation = false
+                shouldShowDeleteVideosConfirmation = false
             },
-            onCancel = { showDeleteVideosConfirmation = false },
+            onCancel = { shouldShowDeleteVideosConfirmation = false },
         )
     }
 }
@@ -606,12 +606,12 @@ private enum class MediaPickerDeleteAction {
 
 @Composable
 private fun SelectionActionsSheet(
-    show: Boolean,
+    shouldShowSelectionActionsSheet: Boolean,
     deleteAction: MediaPickerDeleteAction,
-    showRestoreAction: Boolean,
-    showRenameAction: Boolean,
-    showInfoAction: Boolean,
-    showExcludeAction: Boolean,
+    shouldShowRestoreAction: Boolean,
+    shouldShowRenameAction: Boolean,
+    shouldShowInfoAction: Boolean,
+    shouldShowExcludeAction: Boolean,
     onPlayAction: () -> Unit,
     onRestoreAction: () -> Unit,
     onRenameAction: () -> Unit,
@@ -621,7 +621,7 @@ private fun SelectionActionsSheet(
     onExcludeAction: () -> Unit,
 ) {
     AnimatedVisibility(
-        visible = show,
+        visible = shouldShowSelectionActionsSheet,
         enter = slideInVertically { it },
         exit = slideOutVertically { it },
     ) {
@@ -638,21 +638,21 @@ private fun SelectionActionsSheet(
                 text = stringResource(id = R.string.play),
                 onClick = onPlayAction,
             )
-            if (showRestoreAction) {
+            if (shouldShowRestoreAction) {
                 SelectionActionItem(
                     imageVector = NextIcons.ArrowUpward,
                     text = stringResource(id = R.string.restore),
                     onClick = onRestoreAction,
                 )
             }
-            if (showRenameAction) {
+            if (shouldShowRenameAction) {
                 SelectionActionItem(
                     imageVector = NextIcons.Edit,
                     text = stringResource(id = R.string.rename),
                     onClick = onRenameAction,
                 )
             }
-            if (showInfoAction) {
+            if (shouldShowInfoAction) {
                 SelectionActionItem(
                     imageVector = NextIcons.Info,
                     text = stringResource(id = R.string.info),
@@ -664,7 +664,7 @@ private fun SelectionActionsSheet(
                 text = stringResource(id = R.string.share),
                 onClick = onShareAction,
             )
-            if (showExcludeAction) {
+            if (shouldShowExcludeAction) {
                 SelectionActionItem(
                     imageVector = NextIcons.FolderOff,
                     text = stringResource(id = R.string.exclude),
@@ -677,7 +677,7 @@ private fun SelectionActionsSheet(
                     id = when (deleteAction) {
                         MediaPickerDeleteAction.MoveToRecycleBin -> R.string.move_to_recycle_bin
                         MediaPickerDeleteAction.PermanentlyDelete -> {
-                            if (showRestoreAction) {
+                            if (shouldShowRestoreAction) {
                                 R.string.delete_permanently
                             } else {
                                 R.string.delete
@@ -737,7 +737,7 @@ private fun NetworkUrlDialog(
         },
         confirmButton = {
             DoneButton(
-                enabled = url.isNotBlank(),
+                isEnabled = url.isNotBlank(),
                 onClick = { onDone(url) },
             )
         },

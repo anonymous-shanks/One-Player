@@ -52,7 +52,7 @@ class GetSortedFoldersUseCaseTest {
         val recycledVideo = testVideo("recycled.mp4", "/library/recycled/recycled.mp4")
 
         preferencesRepository.updateApplicationPreferences {
-            it.copy(recycleBinEnabled = true)
+            it.copy(isRecycleBinEnabled = true)
         }
         mediaRepository.directories.addAll(
             listOf(

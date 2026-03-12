@@ -128,7 +128,7 @@ class LocalMediaSynchronizer @Inject constructor(
             mergeVisibleMedia(
                 mediaStoreVideos = mediaStoreVideos,
                 manuallyDiscoveredPaths = preferences.manualVideoPaths.toSet(),
-                includeNoMediaDirectories = preferences.ignoreNoMediaFiles,
+                shouldIgnoreNoMediaFiles = preferences.shouldIgnoreNoMediaFiles,
             )
         }.onEach { media ->
             Logger.info(TAG, "onEach syncing ${media.size} media entries")
@@ -149,7 +149,7 @@ class LocalMediaSynchronizer @Inject constructor(
     private suspend fun mergeVisibleMedia(
         mediaStoreVideos: List<MediaVideo>,
         manuallyDiscoveredPaths: Set<String>,
-        includeNoMediaDirectories: Boolean,
+        shouldIgnoreNoMediaFiles: Boolean,
     ): List<MediaVideo> = withContext(dispatcher) {
         if (manuallyDiscoveredPaths.isNotEmpty()) {
             Logger.info(TAG, "mergeVisibleMedia manualPaths=${manuallyDiscoveredPaths.size}")
@@ -165,9 +165,9 @@ class LocalMediaSynchronizer @Inject constructor(
         val combinedVisibleMedia = mediaStoreVideos + manuallyDiscoveredVideos
         Logger.info(
             TAG,
-            "mergeVisibleMedia result mediaStore=${mediaStoreVideos.size} manual=${manuallyDiscoveredVideos.size} combined=${combinedVisibleMedia.size} noMedia=$includeNoMediaDirectories manageAccess=${hasManageExternalStorageAccess()}",
+            "mergeVisibleMedia result mediaStore=${mediaStoreVideos.size} manual=${manuallyDiscoveredVideos.size} combined=${combinedVisibleMedia.size} noMedia=$shouldIgnoreNoMediaFiles manageAccess=${hasManageExternalStorageAccess()}",
         )
-        if (!includeNoMediaDirectories || !hasManageExternalStorageAccess()) {
+        if (!shouldIgnoreNoMediaFiles || !hasManageExternalStorageAccess()) {
             return@withContext combinedVisibleMedia
                 .distinctBy(MediaVideo::data)
                 .sortedBy(MediaVideo::data)
@@ -351,7 +351,7 @@ class LocalMediaSynchronizer @Inject constructor(
         sortOrder: String? = "${MediaStore.Video.Media.DISPLAY_NAME} ASC",
     ): Flow<List<MediaVideo>> = callbackFlow {
         val observer = object : ContentObserver(null) {
-            override fun onChange(selfChange: Boolean) {
+            override fun onChange(isSelfChange: Boolean) {
                 trySend(getMediaVideo(selection, selectionArgs, sortOrder))
             }
         }

@@ -19,7 +19,7 @@ fun PreferenceSlider(
     title: String,
     description: String? = null,
     icon: ImageVector? = null,
-    enabled: Boolean = true,
+    isEnabled: Boolean = true,
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
     value: Float,
@@ -32,7 +32,7 @@ fun PreferenceSlider(
         modifier = modifier,
         onClick = {},
         onLongClick = null,
-        enabled = enabled,
+        isEnabled = isEnabled,
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
         leadingContent = icon?.let {
@@ -51,7 +51,7 @@ fun PreferenceSlider(
                 }
                 Slider(
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled,
+                    enabled = isEnabled,
                     value = value,
                     valueRange = valueRange,
                     onValueChange = onValueChange,

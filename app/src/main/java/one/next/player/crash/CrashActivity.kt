@@ -122,9 +122,9 @@ class CrashActivity : AppCompatActivity() {
             }
 
             NextPlayerTheme(
-                darkTheme = shouldUseDarkTheme,
-                highContrastDarkTheme = shouldUseHighContrastDarkTheme(uiState = uiState),
-                dynamicColor = shouldUseDynamicTheming(uiState = uiState),
+                shouldUseDarkTheme = shouldUseDarkTheme,
+                shouldUseHighContrastDarkTheme = shouldUseHighContrastDarkTheme(uiState = uiState),
+                shouldUseDynamicColor = shouldUseDynamicTheming(uiState = uiState),
             ) {
                 val clipboard = LocalClipboard.current
                 CrashScreen(

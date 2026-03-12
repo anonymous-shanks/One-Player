@@ -55,7 +55,7 @@ fun MediaLibraryPreferencesScreen(
     LifecycleEventEffect(event = Lifecycle.Event.ON_RESUME) {
         hasAllFilesAccess = hasManageExternalStorageAccess()
         if (hasAllFilesAccess) return@LifecycleEventEffect
-        if (!uiState.preferences.ignoreNoMediaFiles && !uiState.preferences.recycleBinEnabled) {
+        if (!uiState.preferences.shouldIgnoreNoMediaFiles && !uiState.preferences.isRecycleBinEnabled) {
             return@LifecycleEventEffect
         }
 
@@ -72,7 +72,11 @@ fun MediaLibraryPreferencesScreen(
             context.startActivity(createManageExternalStorageAccessIntent(context))
         },
         onToggleIgnoreNoMediaFiles = {
-            viewModel.onEvent(MediaLibraryPreferencesUiEvent.SetIgnoreNoMediaFiles(enabled = it))
+            viewModel.onEvent(
+                MediaLibraryPreferencesUiEvent.SetIgnoreNoMediaFiles(
+                    shouldIgnoreNoMediaFiles = it,
+                ),
+            )
         },
         onEvent = viewModel::onEvent,
     )
@@ -125,7 +129,7 @@ private fun MediaLibraryPreferencesContent(
                         id = R.string.mark_last_played_media_desc,
                     ),
                     icon = NextIcons.Check,
-                    isChecked = preferences.markLastPlayedMedia,
+                    isChecked = preferences.shouldMarkLastPlayedMedia,
                     onClick = { onEvent(MediaLibraryPreferencesUiEvent.ToggleMarkLastPlayedMedia) },
                     isFirstItem = true,
                     isLastItem = false,
@@ -142,8 +146,8 @@ private fun MediaLibraryPreferencesContent(
                     title = stringResource(id = R.string.recycle_bin),
                     description = stringResource(id = R.string.recycle_bin_desc),
                     icon = NextIcons.DeleteSweep,
-                    enabled = hasAllFilesAccess,
-                    isChecked = preferences.recycleBinEnabled,
+                    isEnabled = hasAllFilesAccess,
+                    isChecked = preferences.isRecycleBinEnabled,
                     onClick = { onEvent(MediaLibraryPreferencesUiEvent.ToggleRecycleBinEnabled) },
                     isFirstItem = false,
                     isLastItem = true,
@@ -158,10 +162,10 @@ private fun MediaLibraryPreferencesContent(
                     title = stringResource(id = R.string.ignore_nomedia_files),
                     description = stringResource(id = R.string.ignore_nomedia_files_desc),
                     icon = NextIcons.HideSource,
-                    enabled = hasAllFilesAccess,
-                    isChecked = preferences.ignoreNoMediaFiles,
+                    isEnabled = hasAllFilesAccess,
+                    isChecked = preferences.shouldIgnoreNoMediaFiles,
                     onClick = {
-                        onToggleIgnoreNoMediaFiles(!preferences.ignoreNoMediaFiles)
+                        onToggleIgnoreNoMediaFiles(!preferences.shouldIgnoreNoMediaFiles)
                     },
                     isFirstItem = true,
                     isLastItem = false,

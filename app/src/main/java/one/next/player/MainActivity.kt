@@ -102,9 +102,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             NextPlayerTheme(
-                darkTheme = shouldUseDarkTheme,
-                highContrastDarkTheme = shouldUseHighContrastDarkTheme(uiState = uiState),
-                dynamicColor = shouldUseDynamicTheming(uiState = uiState),
+                shouldUseDarkTheme = shouldUseDarkTheme,
+                shouldUseHighContrastDarkTheme = shouldUseHighContrastDarkTheme(uiState = uiState),
+                shouldUseDynamicColor = shouldUseDynamicTheming(uiState = uiState),
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -217,7 +217,7 @@ fun shouldUseHighContrastDarkTheme(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {
     MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> uiState.preferences.useHighContrastDarkTheme
+    is MainActivityUiState.Success -> uiState.preferences.shouldUseHighContrastDarkTheme
 }
 
 /**
@@ -228,5 +228,5 @@ fun shouldUseDynamicTheming(
     uiState: MainActivityUiState,
 ): Boolean = when (uiState) {
     MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> uiState.preferences.useDynamicColors
+    is MainActivityUiState.Success -> uiState.preferences.shouldUseDynamicColors
 }

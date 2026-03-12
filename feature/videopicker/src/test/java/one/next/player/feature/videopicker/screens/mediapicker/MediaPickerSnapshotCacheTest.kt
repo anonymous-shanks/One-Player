@@ -69,8 +69,8 @@ class MediaPickerSnapshotCacheTest {
     @Test
     fun get_returnsNullForDifferentRecycleBinPreference() {
         val folder = testFolder("Movies", "/storage/Movies")
-        val recycleEnabled = defaultPrefs().copy(recycleBinEnabled = true)
-        val recycleDisabled = defaultPrefs().copy(recycleBinEnabled = false)
+        val recycleEnabled = defaultPrefs().copy(isRecycleBinEnabled = true)
+        val recycleDisabled = defaultPrefs().copy(isRecycleBinEnabled = false)
 
         cache.put("/storage/Movies", folder, recycleEnabled)
 

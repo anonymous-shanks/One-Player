@@ -71,7 +71,7 @@ class PlayerPreferencesViewModel @Inject constructor(
     private fun toggleAutoplay() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(autoplay = !it.autoplay)
+                it.copy(shouldAutoPlay = !it.shouldAutoPlay)
             }
         }
     }
@@ -79,7 +79,7 @@ class PlayerPreferencesViewModel @Inject constructor(
     private fun toggleAutoPip() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(autoPip = !it.autoPip)
+                it.copy(shouldAutoEnterPip = !it.shouldAutoEnterPip)
             }
         }
     }
@@ -87,7 +87,7 @@ class PlayerPreferencesViewModel @Inject constructor(
     private fun toggleAutoBackgroundPlay() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(autoBackgroundPlay = !it.autoBackgroundPlay)
+                it.copy(shouldAutoPlayInBackground = !it.shouldAutoPlayInBackground)
             }
         }
     }
@@ -95,7 +95,7 @@ class PlayerPreferencesViewModel @Inject constructor(
     private fun toggleRememberBrightnessLevel() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(rememberPlayerBrightness = !it.rememberPlayerBrightness)
+                it.copy(shouldRememberPlayerBrightness = !it.shouldRememberPlayerBrightness)
             }
         }
     }
@@ -135,7 +135,7 @@ class PlayerPreferencesViewModel @Inject constructor(
     private fun toggleUseMaterialYouControls() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(useMaterialYouControls = !it.useMaterialYouControls)
+                it.copy(shouldUseMaterialYouControls = !it.shouldUseMaterialYouControls)
             }
         }
     }

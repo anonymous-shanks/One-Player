@@ -63,7 +63,7 @@ class MediaPickerViewModel @Inject constructor(
         viewModelScope.launch {
             getSortedMediaUseCase.invoke(
                 folderPath = folderPath,
-                recycleBinOnly = screenMode == MediaPickerScreenMode.RECYCLE_BIN,
+                isRecycleBinOnly = screenMode == MediaPickerScreenMode.RECYCLE_BIN,
             ).collect { folder ->
                 if (screenMode == MediaPickerScreenMode.LIBRARY) {
                     snapshotCache.put(folderPath, folder, uiStateInternal.value.preferences)
@@ -111,8 +111,8 @@ class MediaPickerViewModel @Inject constructor(
                     video.uriString.toUri()
                 }
             }
-            val deleted = mediaService.deleteMedia(uris)
-            if (deleted) {
+            val isDeletionSuccessful = mediaService.deleteMedia(uris)
+            if (isDeletionSuccessful) {
                 mediaSynchronizer.refresh()
             }
         }
@@ -120,8 +120,8 @@ class MediaPickerViewModel @Inject constructor(
 
     private fun permanentlyDeleteVideos(uris: List<String>) {
         viewModelScope.launch {
-            val deleted = mediaService.deleteMedia(uris.map { it.toUri() })
-            if (deleted) {
+            val isDeletionSuccessful = mediaService.deleteMedia(uris.map { it.toUri() })
+            if (isDeletionSuccessful) {
                 mediaSynchronizer.refresh()
             }
         }
@@ -157,9 +157,9 @@ class MediaPickerViewModel @Inject constructor(
 
     private fun refresh() {
         viewModelScope.launch {
-            uiStateInternal.update { it.copy(refreshing = true) }
+            uiStateInternal.update { it.copy(isRefreshing = true) }
             mediaSynchronizer.refresh()
-            uiStateInternal.update { it.copy(refreshing = false) }
+            uiStateInternal.update { it.copy(isRefreshing = false) }
         }
     }
 
@@ -186,7 +186,7 @@ class MediaPickerViewModel @Inject constructor(
 data class MediaPickerUiState(
     val folderName: String?,
     val mediaDataState: DataState<Folder?> = DataState.Loading,
-    val refreshing: Boolean = false,
+    val isRefreshing: Boolean = false,
     val preferences: ApplicationPreferences = ApplicationPreferences(),
     val screenMode: MediaPickerScreenMode = MediaPickerScreenMode.LIBRARY,
 )

@@ -46,11 +46,11 @@ class DebugCommandReceiver : BroadcastReceiver() {
     private suspend fun setIgnoreNoMedia(intent: Intent) {
         if (!intent.hasExtra(EXTRA_ENABLED)) return
 
-        val enabled = intent.getBooleanExtra(EXTRA_ENABLED, false)
+        val shouldIgnoreNoMediaFiles = intent.getBooleanExtra(EXTRA_ENABLED, false)
         preferencesRepository.updateApplicationPreferences {
-            it.copy(ignoreNoMediaFiles = enabled)
+            it.copy(shouldIgnoreNoMediaFiles = shouldIgnoreNoMediaFiles)
         }
-        Logger.info(TAG, "ignoreNoMediaFiles set to $enabled")
+        Logger.info(TAG, "shouldIgnoreNoMediaFiles set to $shouldIgnoreNoMediaFiles")
         refreshLibrary()
     }
 

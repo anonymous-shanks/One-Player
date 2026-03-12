@@ -73,7 +73,7 @@ fun AboutPreferencesScreen(
     val context = LocalContext.current
     val currentVersionName = remember { context.versionName() }
 
-    LaunchedEffect(uiState.checkForUpdatesOnStartup) {
+    LaunchedEffect(uiState.shouldCheckForUpdatesOnStartup) {
         viewModel.maybeAutoCheck(currentVersionName)
     }
 
@@ -116,14 +116,14 @@ fun AboutPreferencesScreen(
                     title = stringResource(R.string.architecture),
                     description = rememberDeviceArchitecture(),
                     icon = NextIcons.Decoder,
-                    enabled = true,
+                    isEnabled = true,
                     isFirstItem = true,
                 )
                 PreferenceItem(
                     title = stringResource(R.string.android_version),
                     description = rememberAndroidVersion(),
                     icon = NextIcons.Update,
-                    enabled = true,
+                    isEnabled = true,
                     isLastItem = true,
                 )
             }
@@ -163,7 +163,7 @@ private fun UpdateSection(
         PreferenceSwitch(
             title = stringResource(R.string.check_updates_on_startup),
             description = stringResource(R.string.check_updates_on_startup_desc),
-            isChecked = uiState.checkForUpdatesOnStartup,
+            isChecked = uiState.shouldCheckForUpdatesOnStartup,
             onClick = { onEvent(AboutPreferencesUiEvent.ToggleCheckOnStartup) },
             isLastItem = true,
         )

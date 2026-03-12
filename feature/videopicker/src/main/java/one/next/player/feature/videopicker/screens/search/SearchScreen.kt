@@ -417,7 +417,7 @@ private fun SearchResultsContent(
                 onFolderClick = onFolderClick,
                 onVideoClick = onVideoClick,
                 onVideoLoaded = onVideoLoaded,
-                showHeaders = true,
+                shouldShowHeaders = true,
                 contentPadding = contentPadding,
             )
         }

@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun RadioTextButton(
     text: String,
-    selected: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -25,7 +25,7 @@ fun RadioTextButton(
         modifier = modifier
             .fillMaxWidth()
             .selectable(
-                selected = selected,
+                selected = isSelected,
                 onClick = onClick,
                 role = Role.RadioButton,
             )
@@ -33,7 +33,7 @@ fun RadioTextButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(
-            selected = selected,
+            selected = isSelected,
             onClick = null,
         )
         Spacer(modifier = Modifier.width(8.dp))

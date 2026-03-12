@@ -241,16 +241,16 @@ private val highContrastDarkColorScheme = darkColorScheme(
 
 @Composable
 fun NextPlayerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    highContrastDarkTheme: Boolean = false,
-    dynamicColor: Boolean = true,
+    shouldUseDarkTheme: Boolean = isSystemInDarkTheme(),
+    shouldUseHighContrastDarkTheme: Boolean = false,
+    shouldUseDynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
-        dynamicColor && supportsDynamicTheming() -> {
+        shouldUseDynamicColor && supportsDynamicTheming() -> {
             val context = LocalContext.current
             when {
-                darkTheme && highContrastDarkTheme -> dynamicDarkColorScheme(context).copy(
+                shouldUseDarkTheme && shouldUseHighContrastDarkTheme -> dynamicDarkColorScheme(context).copy(
                     background = backgroundPureBlack,
                     surface = surfacePureBlack,
                     surfaceDim = surfaceDimPureBlack,
@@ -261,12 +261,12 @@ fun NextPlayerTheme(
                     surfaceContainerHigh = surfaceContainerHighPureBlack,
                     surfaceContainerHighest = surfaceContainerHighestPureBlack,
                 )
-                darkTheme -> dynamicDarkColorScheme(context)
+                shouldUseDarkTheme -> dynamicDarkColorScheme(context)
                 else -> dynamicLightColorScheme(context)
             }
         }
 
-        darkTheme && highContrastDarkTheme -> darkScheme.copy(
+        shouldUseDarkTheme && shouldUseHighContrastDarkTheme -> darkScheme.copy(
             background = backgroundPureBlack,
             surface = surfacePureBlack,
             surfaceDim = surfaceDimPureBlack,
@@ -277,7 +277,7 @@ fun NextPlayerTheme(
             surfaceContainerHigh = surfaceContainerHighPureBlack,
             surfaceContainerHighest = surfaceContainerHighestPureBlack,
         )
-        darkTheme -> darkScheme
+        shouldUseDarkTheme -> darkScheme
         else -> lightScheme
     }
 

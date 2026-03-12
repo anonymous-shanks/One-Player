@@ -28,7 +28,7 @@ class GetSortedFoldersUseCase @Inject constructor(
             }
 
             val visibleMedia = folder.mediaList.filterNot { video ->
-                preferences.recycleBinEnabled && video.isInRecycleBin
+                preferences.isRecycleBinEnabled && video.isInRecycleBin
             }
             if (visibleMedia.isEmpty()) {
                 return@mapNotNull null

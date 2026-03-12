@@ -21,9 +21,9 @@ class GetSortedVideosUseCase @Inject constructor(
 
     operator fun invoke(
         folderPath: String? = null,
-        recycleBinOnly: Boolean = false,
+        isRecycleBinOnly: Boolean = false,
     ): Flow<List<Video>> {
-        val videosFlow = if (recycleBinOnly) {
+        val videosFlow = if (isRecycleBinOnly) {
             mediaRepository.getRecycleBinVideosFlow()
         } else if (folderPath != null) {
             mediaRepository.getVideosFlowFromFolderPath(folderPath)
@@ -36,8 +36,8 @@ class GetSortedVideosUseCase @Inject constructor(
             preferencesRepository.applicationPreferences,
         ) { videoItems, preferences ->
             val visibleVideos = videoItems.filterNot { video ->
-                (!recycleBinOnly && preferences.isPathExcluded(video.parentPath)) ||
-                    (!recycleBinOnly && preferences.recycleBinEnabled && video.isInRecycleBin)
+                (!isRecycleBinOnly && preferences.isPathExcluded(video.parentPath)) ||
+                    (!isRecycleBinOnly && preferences.isRecycleBinEnabled && video.isInRecycleBin)
             }
 
             val sort = Sort(by = preferences.sortBy, order = preferences.sortOrder)

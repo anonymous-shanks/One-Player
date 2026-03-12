@@ -26,10 +26,10 @@ class GetSortedMediaUseCase @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     operator fun invoke(
         folderPath: String? = null,
-        recycleBinOnly: Boolean = false,
+        isRecycleBinOnly: Boolean = false,
     ): Flow<Folder?> {
-        if (recycleBinOnly) {
-            return getSortedVideosUseCase(recycleBinOnly = true).map { videos ->
+        if (isRecycleBinOnly) {
+            return getSortedVideosUseCase(isRecycleBinOnly = true).map { videos ->
                 Folder.rootFolder.copy(
                     mediaList = videos,
                     folderList = emptyList(),

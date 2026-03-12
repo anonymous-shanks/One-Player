@@ -16,7 +16,7 @@ interface MediaService {
     suspend fun shareMedia(uris: List<Uri>)
 
     companion object {
-        fun willSystemAsksForDeleteConfirmation(): Boolean = true
+        fun shouldAskSystemForDeleteConfirmation(): Boolean = true
     }
 }
 

@@ -108,8 +108,8 @@ class MediaPickerSnapshotCache(
         mediaViewMode = prefs.mediaViewMode,
         sortBy = prefs.sortBy,
         sortOrder = prefs.sortOrder,
-        ignoreNoMediaFiles = prefs.ignoreNoMediaFiles,
-        recycleBinEnabled = prefs.recycleBinEnabled,
+        shouldIgnoreNoMediaFiles = prefs.shouldIgnoreNoMediaFiles,
+        isRecycleBinEnabled = prefs.isRecycleBinEnabled,
         excludeFolders = prefs.excludeFolders,
     )
 
@@ -120,8 +120,8 @@ class MediaPickerSnapshotCache(
         val mediaViewMode: MediaViewMode,
         val sortBy: Sort.By,
         val sortOrder: Sort.Order,
-        val ignoreNoMediaFiles: Boolean,
-        val recycleBinEnabled: Boolean,
+        val shouldIgnoreNoMediaFiles: Boolean,
+        val isRecycleBinEnabled: Boolean,
         val excludeFolders: List<String>,
     ) : Serializable {
         companion object {

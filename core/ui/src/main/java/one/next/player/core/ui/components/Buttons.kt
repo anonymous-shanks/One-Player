@@ -11,10 +11,10 @@ import one.next.player.core.ui.R
 fun DoneButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
+    isEnabled: Boolean = true,
 ) {
     TextButton(
-        enabled = enabled,
+        enabled = isEnabled,
         onClick = onClick,
         modifier = modifier,
     ) {
@@ -26,10 +26,10 @@ fun DoneButton(
 fun CancelButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
+    isEnabled: Boolean = true,
 ) {
     TextButton(
-        enabled = enabled,
+        enabled = isEnabled,
         onClick = onClick,
         modifier = modifier,
     ) {

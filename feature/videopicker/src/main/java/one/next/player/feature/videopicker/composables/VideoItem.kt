@@ -54,7 +54,7 @@ fun VideoItem(
     modifier: Modifier = Modifier,
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
-    selected: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -66,7 +66,7 @@ fun VideoItem(
             modifier = modifier,
             isFirstItem = isFirstItem,
             isLastItem = isLastItem,
-            selected = selected,
+            isSelected = isSelected,
             onClick = onClick,
             onLongClick = onLongClick,
         )
@@ -77,7 +77,7 @@ fun VideoItem(
             modifier = modifier,
             isFirstItem = isFirstItem,
             isLastItem = isLastItem,
-            selected = selected,
+            isSelected = isSelected,
             onClick = onClick,
             onLongClick = onLongClick,
         )
@@ -93,21 +93,21 @@ private fun VideoListItem(
     modifier: Modifier = Modifier,
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
-    selected: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
     NextSegmentedListItem(
         modifier = modifier,
-        selected = selected,
+        isSelected = isSelected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
-            contentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+            contentColor = if (isRecentlyPlayedVideo && preferences.shouldMarkLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
                 ListItemDefaults.segmentedColors().contentColor
             },
-            supportingContentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+            supportingContentColor = if (isRecentlyPlayedVideo && preferences.shouldMarkLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
                 ListItemDefaults.colors().supportingContentColor
@@ -128,7 +128,7 @@ private fun VideoListItem(
         },
         content = {
             Text(
-                text = if (preferences.showExtensionField) video.nameWithExtension else video.displayName,
+                text = if (preferences.shouldShowExtensionField) video.nameWithExtension else video.displayName,
                 maxLines = 2,
                 style = MaterialTheme.typography.titleMedium,
                 overflow = TextOverflow.Ellipsis,
@@ -138,7 +138,7 @@ private fun VideoListItem(
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                if (preferences.showPathField) {
+                if (preferences.shouldShowPathField) {
                     Text(
                         text = video.path.substringBeforeLast("/"),
                         maxLines = 2,
@@ -151,10 +151,10 @@ private fun VideoListItem(
                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
-                    if (preferences.showSizeField) {
+                    if (preferences.shouldShowSizeField) {
                         InfoChip(text = video.formattedFileSize)
                     }
-                    if (preferences.showResolutionField && video.height > 0) {
+                    if (preferences.shouldShowResolutionField && video.height > 0) {
                         InfoChip(text = "${video.height}p")
                     }
                 }
@@ -172,21 +172,21 @@ private fun VideoGridItem(
     modifier: Modifier = Modifier,
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
-    selected: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
     NextSegmentedListItem(
         modifier = modifier.width(IntrinsicSize.Min),
-        selected = selected,
+        isSelected = isSelected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
-            contentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+            contentColor = if (isRecentlyPlayedVideo && preferences.shouldMarkLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
                 ListItemDefaults.segmentedColors().contentColor
             },
-            supportingContentColor = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+            supportingContentColor = if (isRecentlyPlayedVideo && preferences.shouldMarkLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
                 ListItemDefaults.colors().supportingContentColor
@@ -207,12 +207,12 @@ private fun VideoGridItem(
                     preferences = preferences,
                 )
                 Text(
-                    text = if (preferences.showExtensionField) video.nameWithExtension else video.displayName,
+                    text = if (preferences.shouldShowExtensionField) video.nameWithExtension else video.displayName,
                     maxLines = 2,
                     style = MaterialTheme.typography.titleMedium,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    color = if (isRecentlyPlayedVideo && preferences.markLastPlayedMedia) {
+                    color = if (isRecentlyPlayedVideo && preferences.shouldMarkLastPlayedMedia) {
                         MaterialTheme.colorScheme.primary
                     } else {
                         ListItemDefaults.colors().contentColor
@@ -244,7 +244,7 @@ private fun ThumbnailView(
                 .align(Alignment.Center)
                 .fillMaxSize(0.5f),
         )
-        if (preferences.showThumbnailField) {
+        if (preferences.shouldShowThumbnailField) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(video.uriString)
@@ -256,7 +256,7 @@ private fun ThumbnailView(
                 modifier = Modifier.fillMaxSize(),
             )
         }
-        if (preferences.showDurationField) {
+        if (preferences.shouldShowDurationField) {
             InfoChip(
                 text = video.formattedDuration,
                 modifier = Modifier
@@ -268,7 +268,7 @@ private fun ThumbnailView(
             )
         }
 
-        if (preferences.showPlayedProgress && video.playedPercentage > 0) {
+        if (preferences.shouldShowPlayedProgress && video.playedPercentage > 0) {
             Box(
                 modifier = Modifier
                     .height(4.dp)

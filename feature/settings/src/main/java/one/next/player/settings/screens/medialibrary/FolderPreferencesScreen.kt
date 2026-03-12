@@ -92,7 +92,7 @@ private fun FolderPreferencesContent(
                         SelectablePreference(
                             title = folder.name,
                             description = folder.path,
-                            selected = folder.path in uiState.preferences.excludeFolders,
+                            isSelected = folder.path in uiState.preferences.excludeFolders,
                             onClick = { onEvent(FolderPreferencesUiEvent.UpdateExcludeList(folder.path)) },
                             isFirstItem = index == 0,
                             isLastItem = index == uiState.foldersDataState.value.lastIndex,

@@ -42,7 +42,7 @@ import one.next.player.feature.videopicker.state.rememberSelectionManager
 fun MediaView(
     rootFolder: Folder,
     preferences: ApplicationPreferences,
-    showHeaders: Boolean = preferences.mediaViewMode == MediaViewMode.FOLDER_TREE,
+    shouldShowHeaders: Boolean = preferences.mediaViewMode == MediaViewMode.FOLDER_TREE,
     contentPadding: PaddingValues = PaddingValues(),
     selectionManager: SelectionManager = rememberSelectionManager(),
     lazyGridState: LazyGridState = rememberLazyGridState(),
@@ -88,7 +88,7 @@ fun MediaView(
             verticalArrangement = Arrangement.spacedBy(itemSpacing),
             horizontalArrangement = Arrangement.spacedBy(itemSpacing),
         ) {
-            if (showHeaders && rootFolder.folderList.isNotEmpty()) {
+            if (shouldShowHeaders && rootFolder.folderList.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     ListSectionTitle(text = stringResource(id = R.string.folders) + " (${rootFolder.folderList.size})")
                 }
@@ -98,12 +98,12 @@ fun MediaView(
                 key = { _, folder -> folder.path },
                 span = { _, _ -> GridItemSpan(singleFolderSpan) },
             ) { index, folder ->
-                val selected by remember { derivedStateOf { selectionManager.isFolderSelected(folder) } }
+                val isFolderSelected by remember { derivedStateOf { selectionManager.isFolderSelected(folder) } }
                 FolderItem(
                     folder = folder,
                     isRecentlyPlayedFolder = rootFolder.isRecentlyPlayedVideo(folder.recentlyPlayedVideo),
                     preferences = preferences,
-                    selected = selected,
+                    isSelected = isFolderSelected,
                     isFirstItem = index == 0,
                     isLastItem = index == rootFolder.folderList.lastIndex,
                     onClick = {
@@ -127,7 +127,7 @@ fun MediaView(
                 }
             }
 
-            if (showHeaders && rootFolder.mediaList.isNotEmpty()) {
+            if (shouldShowHeaders && rootFolder.mediaList.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     ListSectionTitle(text = stringResource(id = R.string.videos) + " (${rootFolder.mediaList.size})")
                 }
@@ -138,14 +138,14 @@ fun MediaView(
                 key = { _, video -> video.uriString },
                 span = { _, _ -> GridItemSpan(singleVideoSpan) },
             ) { index, video ->
-                val selected by remember { derivedStateOf { selectionManager.isVideoSelected(video) } }
+                val isVideoSelected by remember { derivedStateOf { selectionManager.isVideoSelected(video) } }
                 VideoItem(
                     video = video,
                     preferences = preferences,
                     isRecentlyPlayedVideo = rootFolder.isRecentlyPlayedVideo(video),
                     isFirstItem = index == 0,
                     isLastItem = index == rootFolder.mediaList.lastIndex,
-                    selected = selected,
+                    isSelected = isVideoSelected,
                     onClick = {
                         if (selectionManager.isInSelectionMode) {
                             haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)

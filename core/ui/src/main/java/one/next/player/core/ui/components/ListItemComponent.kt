@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun NextSegmentedListItem(
     modifier: Modifier = Modifier,
-    selected: Boolean = false,
-    enabled: Boolean = true,
+    isSelected: Boolean = false,
+    isEnabled: Boolean = true,
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(16.dp),
@@ -41,10 +41,10 @@ fun NextSegmentedListItem(
     val overrideShape = MaterialTheme.shapes.large
     SegmentedListItem(
         modifier = modifier,
-        selected = selected,
+        selected = isSelected,
         onClick = onClick,
         onLongClick = onLongClick,
-        enabled = enabled,
+        enabled = isEnabled,
         verticalAlignment = Alignment.CenterVertically,
         shapes = remember(isFirstItem, isLastItem, shapes) {
             val defaultBaseShape = shapes.shape

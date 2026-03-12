@@ -62,7 +62,7 @@ class AudioPreferencesViewModel @Inject constructor(
     private fun togglePauseOnHeadsetDisconnect() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(pauseOnHeadsetDisconnect = !it.pauseOnHeadsetDisconnect)
+                it.copy(shouldPauseOnHeadsetDisconnect = !it.shouldPauseOnHeadsetDisconnect)
             }
         }
     }
@@ -70,7 +70,7 @@ class AudioPreferencesViewModel @Inject constructor(
     private fun toggleShowSystemVolumePanel() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(showSystemVolumePanel = !it.showSystemVolumePanel)
+                it.copy(shouldShowSystemVolumePanel = !it.shouldShowSystemVolumePanel)
             }
         }
     }
@@ -78,7 +78,7 @@ class AudioPreferencesViewModel @Inject constructor(
     private fun toggleRequireAudioFocus() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(requireAudioFocus = !it.requireAudioFocus)
+                it.copy(shouldRequireAudioFocus = !it.shouldRequireAudioFocus)
             }
         }
     }
@@ -86,7 +86,7 @@ class AudioPreferencesViewModel @Inject constructor(
     private fun toggleVolumeBoost() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(enableVolumeBoost = !it.enableVolumeBoost)
+                it.copy(isVolumeBoostEnabled = !it.isVolumeBoostEnabled)
             }
         }
     }

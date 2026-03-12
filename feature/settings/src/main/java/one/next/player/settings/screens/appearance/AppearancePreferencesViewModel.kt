@@ -81,7 +81,7 @@ class AppearancePreferencesViewModel @Inject constructor(
     private fun toggleUseDynamicColors() {
         viewModelScope.launch {
             preferencesRepository.updateApplicationPreferences {
-                it.copy(useDynamicColors = !it.useDynamicColors)
+                it.copy(shouldUseDynamicColors = !it.shouldUseDynamicColors)
             }
         }
     }
@@ -89,7 +89,7 @@ class AppearancePreferencesViewModel @Inject constructor(
     private fun toggleUseHighContrastDarkTheme() {
         viewModelScope.launch {
             preferencesRepository.updateApplicationPreferences {
-                it.copy(useHighContrastDarkTheme = !it.useHighContrastDarkTheme)
+                it.copy(shouldUseHighContrastDarkTheme = !it.shouldUseHighContrastDarkTheme)
             }
         }
     }

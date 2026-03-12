@@ -70,14 +70,14 @@ fun rememberRuntimePermissionState(permission: String): RuntimePermissionState {
 @Composable
 fun PermissionMissingView(
     isGranted: Boolean,
-    showRationale: Boolean,
+    shouldShowRationale: Boolean,
     permission: String,
     launchPermissionRequest: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     if (isGranted) {
         content()
-    } else if (showRationale) {
+    } else if (shouldShowRationale) {
         PermissionRationaleDialog(
             text = stringResource(
                 id = R.string.permission_info,

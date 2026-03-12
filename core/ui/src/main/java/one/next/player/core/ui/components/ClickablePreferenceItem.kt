@@ -14,7 +14,7 @@ fun ClickablePreferenceItem(
     title: String,
     modifier: Modifier = Modifier,
     description: String? = null,
-    enabled: Boolean = true,
+    isEnabled: Boolean = true,
     icon: ImageVector? = null,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
@@ -26,7 +26,7 @@ fun ClickablePreferenceItem(
         description = description,
         icon = icon,
         modifier = modifier,
-        enabled = enabled,
+        isEnabled = isEnabled,
         onClick = onClick,
         onLongClick = onLongClick,
         isFirstItem = isFirstItem,
@@ -42,6 +42,6 @@ private fun ClickablePreferenceItemPreview() {
         description = "Description of the preference item goes here.",
         icon = NextIcons.DoubleTap,
         onClick = {},
-        enabled = false,
+        isEnabled = false,
     )
 }

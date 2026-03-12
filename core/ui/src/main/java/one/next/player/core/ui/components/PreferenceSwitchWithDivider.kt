@@ -22,7 +22,7 @@ fun PreferenceSwitchWithDivider(
     title: String = "",
     description: String? = null,
     icon: ImageVector? = null,
-    enabled: Boolean = true,
+    isEnabled: Boolean = true,
     isChecked: Boolean = true,
     onClick: (() -> Unit) = {},
     onChecked: () -> Unit = {},
@@ -34,7 +34,7 @@ fun PreferenceSwitchWithDivider(
         description = description,
         icon = icon,
         onClick = onClick,
-        enabled = enabled,
+        isEnabled = isEnabled,
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
         trailingContent = {
@@ -48,9 +48,9 @@ fun PreferenceSwitchWithDivider(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                 )
                 NextSwitch(
-                    checked = isChecked,
+                    isChecked = isChecked,
                     onCheckedChange = { onChecked() },
-                    enabled = enabled,
+                    isEnabled = isEnabled,
                 )
             }
         },
@@ -75,7 +75,7 @@ fun PreferenceCheckbox(
     title: String,
     description: String? = null,
     icon: ImageVector? = null,
-    enabled: Boolean = true,
+    isEnabled: Boolean = true,
     isChecked: Boolean = true,
     onClick: (() -> Unit) = {},
     onLongClick: (() -> Unit) = {},
@@ -87,14 +87,14 @@ fun PreferenceCheckbox(
         modifier = Modifier
             .toggleable(
                 value = isChecked,
-                enabled = enabled,
+                enabled = isEnabled,
                 onValueChange = { onClick() },
             )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),
-        enabled = enabled,
+        isEnabled = isEnabled,
         trailingContent = {
             Checkbox(
                 checked = isChecked,

@@ -28,7 +28,7 @@ class GetSortedFolderTreeUseCase @Inject constructor(
 
         val sort = Sort(by = preferences.sortBy, order = preferences.sortOrder)
         val visibleMedia = currentFolder.mediaList.filterNot { video ->
-            preferences.recycleBinEnabled && video.isInRecycleBin
+            preferences.isRecycleBinEnabled && video.isInRecycleBin
         }
 
         currentFolder.copy(
@@ -59,7 +59,7 @@ class GetSortedFolderTreeUseCase @Inject constructor(
 
         val childFolders = getFoldersFor(path = directory.path, preferences = preferences)
         val visibleMedia = directory.mediaList.filterNot { video ->
-            preferences.recycleBinEnabled && video.isInRecycleBin
+            preferences.isRecycleBinEnabled && video.isInRecycleBin
         }
         if (visibleMedia.isEmpty() && childFolders.isEmpty()) {
             return@mapNotNull null

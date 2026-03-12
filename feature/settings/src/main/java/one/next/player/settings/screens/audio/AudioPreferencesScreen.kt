@@ -97,28 +97,28 @@ private fun AudioPreferencesContent(
                     title = stringResource(R.string.require_audio_focus),
                     description = stringResource(R.string.require_audio_focus_desc),
                     icon = NextIcons.Focus,
-                    isChecked = uiState.preferences.requireAudioFocus,
+                    isChecked = uiState.preferences.shouldRequireAudioFocus,
                     onClick = { onEvent(AudioPreferencesUiEvent.ToggleRequireAudioFocus) },
                 )
                 PreferenceSwitch(
                     title = stringResource(id = R.string.pause_on_headset_disconnect),
                     description = stringResource(id = R.string.pause_on_headset_disconnect_desc),
                     icon = NextIcons.HeadsetOff,
-                    isChecked = uiState.preferences.pauseOnHeadsetDisconnect,
+                    isChecked = uiState.preferences.shouldPauseOnHeadsetDisconnect,
                     onClick = { onEvent(AudioPreferencesUiEvent.TogglePauseOnHeadsetDisconnect) },
                 )
                 PreferenceSwitch(
                     title = stringResource(id = R.string.system_volume_panel),
                     description = stringResource(id = R.string.system_volume_panel_desc),
                     icon = NextIcons.Headset,
-                    isChecked = uiState.preferences.showSystemVolumePanel,
+                    isChecked = uiState.preferences.shouldShowSystemVolumePanel,
                     onClick = { onEvent(AudioPreferencesUiEvent.ToggleShowSystemVolumePanel) },
                 )
                 PreferenceSwitch(
                     title = stringResource(id = R.string.volume_boost),
                     description = stringResource(id = R.string.volume_boost_desc),
                     icon = NextIcons.VolumeUp,
-                    isChecked = uiState.preferences.enableVolumeBoost,
+                    isChecked = uiState.preferences.isVolumeBoostEnabled,
                     onClick = { onEvent(AudioPreferencesUiEvent.ToggleVolumeBoost) },
                     isLastItem = true,
                 )
@@ -135,7 +135,7 @@ private fun AudioPreferencesContent(
                         items(languages) {
                             RadioTextButton(
                                 text = it.first,
-                                selected = it.second == uiState.preferences.preferredAudioLanguage,
+                                isSelected = it.second == uiState.preferences.preferredAudioLanguage,
                                 onClick = {
                                     onEvent(AudioPreferencesUiEvent.UpdateAudioLanguage(it.second))
                                     onEvent(AudioPreferencesUiEvent.ShowDialog(null))

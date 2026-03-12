@@ -5,28 +5,28 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PlayerPreferences(
     val resume: Resume = Resume.YES,
-    val rememberPlayerBrightness: Boolean = false,
+    val shouldRememberPlayerBrightness: Boolean = false,
     val playerBrightness: Float = 0.5f,
     val minDurationForFastSeek: Long = 120000L,
-    val rememberSelections: Boolean = true,
+    val shouldRememberSelections: Boolean = true,
     val playerScreenOrientation: ScreenOrientation = ScreenOrientation.VIDEO_ORIENTATION,
     val playerVideoZoom: VideoContentScale = VideoContentScale.BEST_FIT,
     val defaultPlaybackSpeed: Float = 1.0f,
-    val autoplay: Boolean = true,
-    val autoPip: Boolean = true,
-    val autoBackgroundPlay: Boolean = false,
+    val shouldAutoPlay: Boolean = true,
+    val shouldAutoEnterPip: Boolean = true,
+    val shouldAutoPlayInBackground: Boolean = false,
     val loopMode: LoopMode = LoopMode.OFF,
 
     // Controls (Gestures)
-    @Deprecated(message = "Use individual enableVolumeSwipeGesture and enableBrightnessSwipeGesture instead")
-    val useSwipeControls: Boolean = true,
-    val enableVolumeSwipeGesture: Boolean = true,
-    val enableBrightnessSwipeGesture: Boolean = true,
-    val useSeekControls: Boolean = true,
-    val useZoomControls: Boolean = true,
-    val enablePanGesture: Boolean = false,
+    @Deprecated(message = "Use individual isVolumeSwipeGestureEnabled and isBrightnessSwipeGestureEnabled instead")
+    val shouldUseSwipeControls: Boolean = true,
+    val isVolumeSwipeGestureEnabled: Boolean = true,
+    val isBrightnessSwipeGestureEnabled: Boolean = true,
+    val shouldUseSeekControls: Boolean = true,
+    val shouldUseZoomControls: Boolean = true,
+    val isPanGestureEnabled: Boolean = false,
     val doubleTapGesture: DoubleTapGesture = DoubleTapGesture.BOTH,
-    val useLongPressControls: Boolean = false,
+    val shouldUseLongPressControls: Boolean = false,
     val longPressControlsSpeed: Float = 2.0f,
     val seekIncrement: Int = DEFAULT_SEEK_INCREMENT,
     val seekSensitivity: Float = DEFAULT_SEEK_SENSITIVITY,
@@ -36,25 +36,25 @@ data class PlayerPreferences(
     // Player Interface
     val controllerAutoHideTimeout: Int = DEFAULT_CONTROLLER_AUTO_HIDE_TIMEOUT,
     val controlButtonsPosition: ControlButtonsPosition = ControlButtonsPosition.LEFT,
-    val hidePlayerButtonsBackground: Boolean = false,
-    val useMaterialYouControls: Boolean = false,
+    val shouldHidePlayerButtonsBackground: Boolean = false,
+    val shouldUseMaterialYouControls: Boolean = false,
 
     // Audio Preferences
     val preferredAudioLanguage: String = "",
-    val pauseOnHeadsetDisconnect: Boolean = true,
-    val requireAudioFocus: Boolean = true,
-    val showSystemVolumePanel: Boolean = true,
-    val enableVolumeBoost: Boolean = false,
+    val shouldPauseOnHeadsetDisconnect: Boolean = true,
+    val shouldRequireAudioFocus: Boolean = true,
+    val shouldShowSystemVolumePanel: Boolean = true,
+    val isVolumeBoostEnabled: Boolean = false,
 
     // Subtitle Preferences
-    val useSystemCaptionStyle: Boolean = false,
+    val shouldUseSystemCaptionStyle: Boolean = false,
     val preferredSubtitleLanguage: String = "",
     val subtitleTextEncoding: String = "",
     val subtitleTextSize: Int = DEFAULT_SUBTITLE_TEXT_SIZE,
-    val subtitleBackground: Boolean = false,
+    val shouldShowSubtitleBackground: Boolean = false,
     val subtitleFont: Font = Font.DEFAULT,
-    val subtitleTextBold: Boolean = true,
-    val applyEmbeddedStyles: Boolean = true,
+    val shouldUseBoldSubtitleText: Boolean = true,
+    val shouldApplyEmbeddedStyles: Boolean = true,
 
     // Decoder Preferences
     val decoderPriority: DecoderPriority = DecoderPriority.PREFER_DEVICE,

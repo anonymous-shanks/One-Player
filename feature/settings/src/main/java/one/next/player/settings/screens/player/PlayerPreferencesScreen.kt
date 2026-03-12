@@ -94,7 +94,7 @@ private fun PlayerPreferencesContent(
                     title = stringResource(id = R.string.material_you_controls),
                     description = stringResource(id = R.string.material_you_controls_description),
                     icon = NextIcons.Appearance,
-                    isChecked = uiState.preferences.useMaterialYouControls,
+                    isChecked = uiState.preferences.shouldUseMaterialYouControls,
                     onClick = { onEvent(PlayerPreferencesUiEvent.ToggleUseMaterialYouControls) },
                     isFirstItem = true,
                 )
@@ -150,7 +150,7 @@ private fun PlayerPreferencesContent(
                         id = R.string.autoplay_settings_description,
                     ),
                     icon = NextIcons.Player,
-                    isChecked = uiState.preferences.autoplay,
+                    isChecked = uiState.preferences.shouldAutoPlay,
                     onClick = { onEvent(PlayerPreferencesUiEvent.ToggleAutoplay) },
                 )
                 if (LocalContext.current.isPipFeatureSupported) {
@@ -160,7 +160,7 @@ private fun PlayerPreferencesContent(
                             id = R.string.pip_settings_description,
                         ),
                         icon = NextIcons.Pip,
-                        isChecked = uiState.preferences.autoPip,
+                        isChecked = uiState.preferences.shouldAutoEnterPip,
                         onClick = { onEvent(PlayerPreferencesUiEvent.ToggleAutoPip) },
                     )
                 }
@@ -170,7 +170,7 @@ private fun PlayerPreferencesContent(
                         id = R.string.background_play_description,
                     ),
                     icon = NextIcons.Headset,
-                    isChecked = uiState.preferences.autoBackgroundPlay,
+                    isChecked = uiState.preferences.shouldAutoPlayInBackground,
                     onClick = { onEvent(PlayerPreferencesUiEvent.ToggleAutoBackgroundPlay) },
                 )
                 PreferenceSwitch(
@@ -179,7 +179,7 @@ private fun PlayerPreferencesContent(
                         id = R.string.remember_brightness_level_description,
                     ),
                     icon = NextIcons.Brightness,
-                    isChecked = uiState.preferences.rememberPlayerBrightness,
+                    isChecked = uiState.preferences.shouldRememberPlayerBrightness,
                     onClick = { onEvent(PlayerPreferencesUiEvent.ToggleRememberBrightnessLevel) },
                 )
                 ClickablePreferenceItem(
@@ -204,7 +204,7 @@ private fun PlayerPreferencesContent(
                         items(Resume.entries.toTypedArray()) {
                             RadioTextButton(
                                 text = it.name(),
-                                selected = (it == uiState.preferences.resume),
+                                isSelected = (it == uiState.preferences.resume),
                                 onClick = {
                                     onEvent(PlayerPreferencesUiEvent.UpdatePlaybackResume(it))
                                     onEvent(PlayerPreferencesUiEvent.ShowDialog(null))
@@ -222,7 +222,7 @@ private fun PlayerPreferencesContent(
                         items(ScreenOrientation.entries.toTypedArray()) {
                             RadioTextButton(
                                 text = it.name(),
-                                selected = it == uiState.preferences.playerScreenOrientation,
+                                isSelected = it == uiState.preferences.playerScreenOrientation,
                                 onClick = {
                                     onEvent(PlayerPreferencesUiEvent.UpdatePreferredPlayerOrientation(it))
                                     onEvent(PlayerPreferencesUiEvent.ShowDialog(null))
@@ -240,7 +240,7 @@ private fun PlayerPreferencesContent(
                         items(ControlButtonsPosition.entries.toTypedArray()) {
                             RadioTextButton(
                                 text = it.name(),
-                                selected = it == uiState.preferences.controlButtonsPosition,
+                                isSelected = it == uiState.preferences.controlButtonsPosition,
                                 onClick = {
                                     onEvent(PlayerPreferencesUiEvent.UpdatePreferredControlButtonsPosition(it))
                                     onEvent(PlayerPreferencesUiEvent.ShowDialog(null))

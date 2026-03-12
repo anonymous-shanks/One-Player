@@ -70,7 +70,7 @@ class GesturePreferencesViewModel @Inject constructor(
     private fun toggleUseLongPressControls() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(useLongPressControls = !it.useLongPressControls)
+                it.copy(shouldUseLongPressControls = !it.shouldUseLongPressControls)
             }
         }
     }
@@ -92,7 +92,7 @@ class GesturePreferencesViewModel @Inject constructor(
     private fun toggleEnableBrightnessSwipeGesture() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(enableBrightnessSwipeGesture = !it.enableBrightnessSwipeGesture)
+                it.copy(isBrightnessSwipeGestureEnabled = !it.isBrightnessSwipeGestureEnabled)
             }
         }
     }
@@ -100,7 +100,7 @@ class GesturePreferencesViewModel @Inject constructor(
     private fun toggleEnableVolumeSwipeGesture() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(enableVolumeSwipeGesture = !it.enableVolumeSwipeGesture)
+                it.copy(isVolumeSwipeGestureEnabled = !it.isVolumeSwipeGestureEnabled)
             }
         }
     }
@@ -108,7 +108,7 @@ class GesturePreferencesViewModel @Inject constructor(
     private fun toggleUseSeekControls() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(useSeekControls = !it.useSeekControls)
+                it.copy(shouldUseSeekControls = !it.shouldUseSeekControls)
             }
         }
     }
@@ -116,7 +116,7 @@ class GesturePreferencesViewModel @Inject constructor(
     private fun toggleUseZoomControls() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(useZoomControls = !it.useZoomControls)
+                it.copy(shouldUseZoomControls = !it.shouldUseZoomControls)
             }
         }
     }
@@ -124,7 +124,7 @@ class GesturePreferencesViewModel @Inject constructor(
     private fun toggleEnablePanGesture() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(enablePanGesture = !it.enablePanGesture)
+                it.copy(isPanGestureEnabled = !it.isPanGestureEnabled)
             }
         }
     }

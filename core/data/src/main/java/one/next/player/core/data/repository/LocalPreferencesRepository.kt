@@ -70,11 +70,11 @@ class LocalPreferencesRepository @Inject constructor(
 
     private fun sanitizeApplicationPreferences(preferences: ApplicationPreferences): ApplicationPreferences {
         if (hasManageExternalStorageAccess()) return preferences
-        if (!preferences.ignoreNoMediaFiles && !preferences.recycleBinEnabled) return preferences
+        if (!preferences.shouldIgnoreNoMediaFiles && !preferences.isRecycleBinEnabled) return preferences
 
         return preferences.copy(
-            ignoreNoMediaFiles = false,
-            recycleBinEnabled = false,
+            shouldIgnoreNoMediaFiles = false,
+            isRecycleBinEnabled = false,
         )
     }
 }

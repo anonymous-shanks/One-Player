@@ -143,38 +143,38 @@ fun QuickSettingsDialog(
                 ) {
                     FieldChip(
                         label = stringResource(id = R.string.duration),
-                        selected = preferences.showDurationField,
-                        onClick = { preferences = preferences.copy(showDurationField = !preferences.showDurationField) },
+                        isSelected = preferences.shouldShowDurationField,
+                        onClick = { preferences = preferences.copy(shouldShowDurationField = !preferences.shouldShowDurationField) },
                     )
                     FieldChip(
                         label = stringResource(id = R.string.extension),
-                        selected = preferences.showExtensionField,
-                        onClick = { preferences = preferences.copy(showExtensionField = !preferences.showExtensionField) },
+                        isSelected = preferences.shouldShowExtensionField,
+                        onClick = { preferences = preferences.copy(shouldShowExtensionField = !preferences.shouldShowExtensionField) },
                     )
                     FieldChip(
                         label = stringResource(id = R.string.path),
-                        selected = preferences.showPathField,
-                        onClick = { preferences = preferences.copy(showPathField = !preferences.showPathField) },
+                        isSelected = preferences.shouldShowPathField,
+                        onClick = { preferences = preferences.copy(shouldShowPathField = !preferences.shouldShowPathField) },
                     )
                     FieldChip(
                         label = stringResource(id = R.string.played_progress),
-                        selected = preferences.showPlayedProgress,
-                        onClick = { preferences = preferences.copy(showPlayedProgress = !preferences.showPlayedProgress) },
+                        isSelected = preferences.shouldShowPlayedProgress,
+                        onClick = { preferences = preferences.copy(shouldShowPlayedProgress = !preferences.shouldShowPlayedProgress) },
                     )
                     FieldChip(
                         label = stringResource(id = R.string.resolution),
-                        selected = preferences.showResolutionField,
-                        onClick = { preferences = preferences.copy(showResolutionField = !preferences.showResolutionField) },
+                        isSelected = preferences.shouldShowResolutionField,
+                        onClick = { preferences = preferences.copy(shouldShowResolutionField = !preferences.shouldShowResolutionField) },
                     )
                     FieldChip(
                         label = stringResource(id = R.string.size),
-                        selected = preferences.showSizeField,
-                        onClick = { preferences = preferences.copy(showSizeField = !preferences.showSizeField) },
+                        isSelected = preferences.shouldShowSizeField,
+                        onClick = { preferences = preferences.copy(shouldShowSizeField = !preferences.shouldShowSizeField) },
                     )
                     FieldChip(
                         label = stringResource(id = R.string.thumbnail),
-                        selected = preferences.showThumbnailField,
-                        onClick = { preferences = preferences.copy(showThumbnailField = !preferences.showThumbnailField) },
+                        isSelected = preferences.shouldShowThumbnailField,
+                        onClick = { preferences = preferences.copy(shouldShowThumbnailField = !preferences.shouldShowThumbnailField) },
                     )
                 }
             }
@@ -196,19 +196,19 @@ fun QuickSettingsDialog(
 @Composable
 fun FieldChip(
     label: String,
-    selected: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     selectedIcon: ImageVector = NextIcons.CheckBox,
     unselectedIcon: ImageVector = NextIcons.CheckBoxOutline,
 ) {
     FilterChip(
-        selected = selected,
+        selected = isSelected,
         onClick = onClick,
         label = { Text(text = label) },
         leadingIcon = {
             Icon(
-                imageVector = if (selected) selectedIcon else unselectedIcon,
+                imageVector = if (isSelected) selectedIcon else unselectedIcon,
                 contentDescription = "",
                 modifier = Modifier.size(FilterChipDefaults.IconSize),
                 tint = MaterialTheme.colorScheme.secondary,
@@ -216,7 +216,7 @@ fun FieldChip(
         },
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
-            selected = selected,
+            selected = isSelected,
             selectedBorderWidth = 1.dp,
             selectedBorderColor = MaterialTheme.colorScheme.primary,
         ),

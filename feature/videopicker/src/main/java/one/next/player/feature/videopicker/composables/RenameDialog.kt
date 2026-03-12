@@ -43,7 +43,7 @@ fun RenameDialog(
         },
         confirmButton = {
             DoneButton(
-                enabled = mediaName.isNotBlank(),
+                isEnabled = mediaName.isNotBlank(),
                 onClick = { onDone(mediaName) },
             )
         },

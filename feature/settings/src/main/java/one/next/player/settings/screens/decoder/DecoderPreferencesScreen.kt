@@ -105,7 +105,7 @@ private fun DecoderPreferencesContent(
                         items(DecoderPriority.entries.toTypedArray()) {
                             RadioTextButton(
                                 text = it.name(),
-                                selected = it == preferences.decoderPriority,
+                                isSelected = it == preferences.decoderPriority,
                                 onClick = {
                                     onEvent(DecoderPreferencesUiEvent.UpdateDecoderPriority(it))
                                     onEvent(DecoderPreferencesUiEvent.ShowDialog(null))

@@ -108,7 +108,7 @@ private fun AppearancePreferencesContent(
                     title = stringResource(R.string.high_contrast_dark_theme),
                     description = stringResource(R.string.high_contrast_dark_theme_desc),
                     icon = NextIcons.Contrast,
-                    isChecked = uiState.preferences.useHighContrastDarkTheme,
+                    isChecked = uiState.preferences.shouldUseHighContrastDarkTheme,
                     onClick = { onEvent(AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme) },
                     isLastItem = !supportsDynamicTheming(),
                 )
@@ -117,7 +117,7 @@ private fun AppearancePreferencesContent(
                         title = stringResource(id = R.string.dynamic_theme),
                         description = stringResource(id = R.string.dynamic_theme_description),
                         icon = NextIcons.Appearance,
-                        isChecked = uiState.preferences.useDynamicColors,
+                        isChecked = uiState.preferences.shouldUseDynamicColors,
                         onClick = { onEvent(AppearancePreferencesEvent.ToggleUseDynamicColors) },
                         isLastItem = true,
                     )
@@ -135,7 +135,7 @@ private fun AppearancePreferencesContent(
                         items(ThemeConfig.entries.toTypedArray()) {
                             RadioTextButton(
                                 text = it.name(),
-                                selected = (it == uiState.preferences.themeConfig),
+                                isSelected = (it == uiState.preferences.themeConfig),
                                 onClick = {
                                     onEvent(AppearancePreferencesEvent.UpdateThemeConfig(it))
                                     onEvent(AppearancePreferencesEvent.ShowDialog(null))
@@ -153,7 +153,7 @@ private fun AppearancePreferencesContent(
                         item {
                             RadioTextButton(
                                 text = stringResource(id = R.string.system_default),
-                                selected = uiState.preferences.appLanguage.isEmpty(),
+                                isSelected = uiState.preferences.appLanguage.isEmpty(),
                                 onClick = {
                                     onEvent(AppearancePreferencesEvent.UpdateAppLanguage(""))
                                     onEvent(AppearancePreferencesEvent.ShowDialog(null))
@@ -163,7 +163,7 @@ private fun AppearancePreferencesContent(
                         items(appLanguages) {
                             RadioTextButton(
                                 text = it.first,
-                                selected = it.second == uiState.preferences.appLanguage,
+                                isSelected = it.second == uiState.preferences.appLanguage,
                                 onClick = {
                                     onEvent(AppearancePreferencesEvent.UpdateAppLanguage(it.second))
                                     onEvent(AppearancePreferencesEvent.ShowDialog(null))

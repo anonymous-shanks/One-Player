@@ -21,7 +21,7 @@ fun rememberSelectionManager(): SelectionManager = rememberSaveable(saver = Sele
 class SelectionManager(
     initialSelectedVideos: Set<SelectedVideo> = emptySet(),
     initialSelectedFolders: Set<SelectedFolder> = emptySet(),
-    initialIsInSelectionMode: Boolean = false,
+    isInitiallyInSelectionMode: Boolean = false,
 ) {
     var selectedVideos: Set<SelectedVideo> by mutableStateOf(initialSelectedVideos)
         private set
@@ -29,7 +29,7 @@ class SelectionManager(
     var selectedFolders: Set<SelectedFolder> by mutableStateOf(initialSelectedFolders)
         private set
 
-    var isInSelectionMode: Boolean by mutableStateOf(initialIsInSelectionMode)
+    var isInSelectionMode: Boolean by mutableStateOf(isInitiallyInSelectionMode)
         private set
 
     val allSelectedVideos: Set<SelectedVideo> by derivedStateOf { selectedVideos + selectedFolders.flatMap { it.mediaList } }
@@ -107,7 +107,7 @@ class SelectionManager(
                 SelectionManager(
                     initialSelectedVideos = (it["selectedVideos"] as? Set<SelectedVideo>) ?: emptySet(),
                     initialSelectedFolders = (it["selectedFolders"] as? Set<SelectedFolder>) ?: emptySet(),
-                    initialIsInSelectionMode = it["isInSelectionMode"] as? Boolean ?: false,
+                    isInitiallyInSelectionMode = it["isInSelectionMode"] as? Boolean ?: false,
                 )
             },
         )

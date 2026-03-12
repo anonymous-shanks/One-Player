@@ -11,13 +11,13 @@ import one.next.player.core.ui.designsystem.NextIcons
 
 @Composable
 fun NextSwitch(
-    checked: Boolean,
+    isChecked: Boolean,
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
+    isEnabled: Boolean = true,
     checkedIcon: ImageVector = NextIcons.Check,
 ) {
-    val thumbContent: (@Composable () -> Unit)? = if (checked) {
+    val thumbContent: (@Composable () -> Unit)? = if (isChecked) {
         {
             Icon(
                 imageVector = checkedIcon,
@@ -30,10 +30,10 @@ fun NextSwitch(
     }
 
     Switch(
-        checked = checked,
+        checked = isChecked,
         onCheckedChange = onCheckedChange,
         modifier = modifier,
-        enabled = enabled,
+        enabled = isEnabled,
         thumbContent = thumbContent,
     )
 }

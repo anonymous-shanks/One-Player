@@ -27,7 +27,7 @@ fun PreferenceItem(
     title: String,
     description: String? = null,
     icon: ImageVector? = null,
-    enabled: Boolean,
+    isEnabled: Boolean,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
     isFirstItem: Boolean = false,
@@ -38,7 +38,7 @@ fun PreferenceItem(
         modifier = modifier,
         onClick = onClick,
         onLongClick = onLongClick,
-        enabled = enabled,
+        isEnabled = isEnabled,
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
         leadingContent = icon?.let {
@@ -68,7 +68,7 @@ fun SelectablePreference(
     title: String,
     modifier: Modifier = Modifier,
     description: String? = null,
-    selected: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
     isFirstItem: Boolean = false,
@@ -85,7 +85,7 @@ fun SelectablePreference(
                 text = title,
                 maxLines = 1,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    textDecoration = if (selected) TextDecoration.LineThrough else TextDecoration.None,
+                    textDecoration = if (isSelected) TextDecoration.LineThrough else TextDecoration.None,
                 ),
             )
         },
@@ -95,7 +95,7 @@ fun SelectablePreference(
                     text = it,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = if (selected) TextDecoration.LineThrough else TextDecoration.None,
+                        textDecoration = if (isSelected) TextDecoration.LineThrough else TextDecoration.None,
                     ),
                 )
             }
@@ -103,7 +103,7 @@ fun SelectablePreference(
         trailingContent = {
             Checkbox(
                 modifier = Modifier.semantics { contentDescription = title },
-                checked = selected,
+                checked = isSelected,
                 onCheckedChange = null,
             )
         },
@@ -116,7 +116,7 @@ fun SingleSelectablePreference(
     title: String,
     modifier: Modifier = Modifier,
     description: String? = null,
-    selected: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
     isFirstItem: Boolean = false,
@@ -144,7 +144,7 @@ fun SingleSelectablePreference(
         },
         leadingContent = {
             RadioButton(
-                selected = selected,
+                selected = isSelected,
                 onClick = null,
             )
         },
@@ -158,7 +158,7 @@ fun PreferenceItemPreview() {
         title = "Title",
         description = "Description of the preference item goes here.",
         icon = NextIcons.DoubleTap,
-        enabled = true,
+        isEnabled = true,
     )
 }
 
@@ -171,4 +171,4 @@ fun SelectablePreferencePreview() {
     )
 }
 
-internal fun Color.applyAlpha(enabled: Boolean): Color = if (enabled) this else this.copy(alpha = 0.6f)
+internal fun Color.applyAlpha(isEnabled: Boolean): Color = if (isEnabled) this else this.copy(alpha = 0.6f)

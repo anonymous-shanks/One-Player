@@ -35,7 +35,7 @@ class AboutPreferencesViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.applicationPreferences.collect { prefs ->
                 uiStateInternal.update {
-                    it.copy(checkForUpdatesOnStartup = prefs.checkForUpdatesOnStartup)
+                    it.copy(shouldCheckForUpdatesOnStartup = prefs.shouldCheckForUpdatesOnStartup)
                 }
             }
         }
@@ -49,7 +49,7 @@ class AboutPreferencesViewModel @Inject constructor(
     }
 
     fun maybeAutoCheck(currentVersion: String) {
-        if (!uiStateInternal.value.checkForUpdatesOnStartup) return
+        if (!uiStateInternal.value.shouldCheckForUpdatesOnStartup) return
         if (uiStateInternal.value.updateState != UpdateState.Idle) return
         checkForUpdates(currentVersion)
     }
@@ -97,7 +97,7 @@ class AboutPreferencesViewModel @Inject constructor(
     private fun toggleCheckOnStartup() {
         viewModelScope.launch {
             preferencesRepository.updateApplicationPreferences {
-                it.copy(checkForUpdatesOnStartup = !it.checkForUpdatesOnStartup)
+                it.copy(shouldCheckForUpdatesOnStartup = !it.shouldCheckForUpdatesOnStartup)
             }
         }
     }
@@ -119,7 +119,7 @@ private fun compareVersions(v1: String, v2: String): Int {
 @Stable
 data class AboutPreferencesUiState(
     val updateState: UpdateState = UpdateState.Idle,
-    val checkForUpdatesOnStartup: Boolean = false,
+    val shouldCheckForUpdatesOnStartup: Boolean = false,
 )
 
 sealed interface UpdateState {

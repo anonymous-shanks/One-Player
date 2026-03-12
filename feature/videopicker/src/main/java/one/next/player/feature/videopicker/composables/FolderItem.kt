@@ -46,7 +46,7 @@ fun FolderItem(
     modifier: Modifier = Modifier,
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
-    selected: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -58,7 +58,7 @@ fun FolderItem(
             modifier = modifier,
             isFirstItem = isFirstItem,
             isLastItem = isLastItem,
-            selected = selected,
+            isSelected = isSelected,
             onClick = onClick,
             onLongClick = onLongClick,
         )
@@ -69,7 +69,7 @@ fun FolderItem(
             modifier = modifier,
             isFirstItem = isFirstItem,
             isLastItem = isLastItem,
-            selected = selected,
+            isSelected = isSelected,
             onClick = onClick,
             onLongClick = onLongClick,
         )
@@ -85,21 +85,21 @@ private fun FolderListItem(
     modifier: Modifier = Modifier,
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
-    selected: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
     NextSegmentedListItem(
         modifier = modifier,
-        selected = selected,
+        isSelected = isSelected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
-            contentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
+            contentColor = if (isRecentlyPlayedFolder && preferences.shouldMarkLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
                 ListItemDefaults.colors().contentColor
             },
-            supportingContentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
+            supportingContentColor = if (isRecentlyPlayedFolder && preferences.shouldMarkLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
                 ListItemDefaults.colors().supportingContentColor
@@ -121,7 +121,7 @@ private fun FolderListItem(
                         .aspectRatio(20 / 17f),
                 )
 
-                if (preferences.showDurationField) {
+                if (preferences.shouldShowDurationField) {
                     InfoChip(
                         text = Utils.formatDurationMillis(folder.mediaDuration),
                         modifier = Modifier
@@ -147,7 +147,7 @@ private fun FolderListItem(
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                if (preferences.showPathField) {
+                if (preferences.shouldShowPathField) {
                     Text(
                         text = folder.path.substringBeforeLast("/"),
                         maxLines = 2,
@@ -172,7 +172,7 @@ private fun FolderListItem(
                                 stringResource(id = R.string.folder.takeIf { folder.folderList.size == 1 } ?: R.string.folders),
                         )
                     }
-                    if (preferences.showSizeField) {
+                    if (preferences.shouldShowSizeField) {
                         InfoChip(text = Utils.formatFileSize(folder.mediaSize))
                     }
                 }
@@ -190,21 +190,21 @@ private fun FolderGridItem(
     modifier: Modifier = Modifier,
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
-    selected: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
 ) {
     NextSegmentedListItem(
         modifier = modifier.width(IntrinsicSize.Min),
-        selected = selected,
+        isSelected = isSelected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
-            contentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
+            contentColor = if (isRecentlyPlayedFolder && preferences.shouldMarkLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
                 ListItemDefaults.segmentedColors().contentColor
             },
-            supportingContentColor = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
+            supportingContentColor = if (isRecentlyPlayedFolder && preferences.shouldMarkLastPlayedMedia) {
                 MaterialTheme.colorScheme.primary
             } else {
                 ListItemDefaults.colors().supportingContentColor
@@ -231,7 +231,7 @@ private fun FolderGridItem(
                             .aspectRatio(20 / 17f),
                     )
 
-                    if (preferences.showDurationField) {
+                    if (preferences.shouldShowDurationField) {
                         InfoChip(
                             text = Utils.formatDurationMillis(folder.mediaDuration),
                             modifier = Modifier
@@ -254,7 +254,7 @@ private fun FolderGridItem(
                         maxLines = 2,
                         style = MaterialTheme.typography.titleMedium,
                         overflow = TextOverflow.Ellipsis,
-                        color = if (isRecentlyPlayedFolder && preferences.markLastPlayedMedia) {
+                        color = if (isRecentlyPlayedFolder && preferences.shouldMarkLastPlayedMedia) {
                             MaterialTheme.colorScheme.primary
                         } else {
                             ListItemDefaults.colors().contentColor

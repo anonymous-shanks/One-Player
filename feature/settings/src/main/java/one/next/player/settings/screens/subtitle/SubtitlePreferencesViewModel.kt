@@ -75,7 +75,7 @@ class SubtitlePreferencesViewModel @Inject constructor(
     private fun toggleSubtitleTextBold() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(subtitleTextBold = !it.subtitleTextBold)
+                it.copy(shouldUseBoldSubtitleText = !it.shouldUseBoldSubtitleText)
             }
         }
     }
@@ -91,7 +91,7 @@ class SubtitlePreferencesViewModel @Inject constructor(
     private fun toggleSubtitleBackground() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(subtitleBackground = !it.subtitleBackground)
+                it.copy(shouldShowSubtitleBackground = !it.shouldShowSubtitleBackground)
             }
         }
     }
@@ -99,7 +99,7 @@ class SubtitlePreferencesViewModel @Inject constructor(
     private fun toggleApplyEmbeddedStyles() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(applyEmbeddedStyles = !it.applyEmbeddedStyles)
+                it.copy(shouldApplyEmbeddedStyles = !it.shouldApplyEmbeddedStyles)
             }
         }
     }
@@ -113,14 +113,14 @@ class SubtitlePreferencesViewModel @Inject constructor(
     private fun toggleRememberSelections() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences {
-                it.copy(rememberSelections = !it.rememberSelections)
+                it.copy(shouldRememberSelections = !it.shouldRememberSelections)
             }
         }
     }
 
     private fun toggleUseSystemCaptionStyle() {
         viewModelScope.launch {
-            preferencesRepository.updatePlayerPreferences { it.copy(useSystemCaptionStyle = !it.useSystemCaptionStyle) }
+            preferencesRepository.updatePlayerPreferences { it.copy(shouldUseSystemCaptionStyle = !it.shouldUseSystemCaptionStyle) }
         }
     }
 }

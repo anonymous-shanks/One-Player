@@ -108,7 +108,7 @@ private fun ThumbnailPreferencesContent(
                 SingleSelectablePreference(
                     title = stringResource(id = R.string.first_frame),
                     description = stringResource(id = R.string.first_frame_desc),
-                    selected = preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.FIRST_FRAME,
+                    isSelected = preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.FIRST_FRAME,
                     onClick = {
                         if (preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.FIRST_FRAME) return@SingleSelectablePreference
                         pendingChange = ThumbnailPreferenceChange.Strategy(ThumbnailGenerationStrategy.FIRST_FRAME)
@@ -118,7 +118,7 @@ private fun ThumbnailPreferencesContent(
                 SingleSelectablePreference(
                     title = stringResource(id = R.string.frame_at_position),
                     description = stringResource(id = R.string.frame_at_position_desc),
-                    selected = preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.FRAME_AT_PERCENTAGE,
+                    isSelected = preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.FRAME_AT_PERCENTAGE,
                     onClick = {
                         if (preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.FRAME_AT_PERCENTAGE) return@SingleSelectablePreference
                         pendingChange = ThumbnailPreferenceChange.Strategy(ThumbnailGenerationStrategy.FRAME_AT_PERCENTAGE)
@@ -127,7 +127,7 @@ private fun ThumbnailPreferencesContent(
                 SingleSelectablePreference(
                     title = stringResource(id = R.string.hybrid),
                     description = stringResource(id = R.string.hybrid_desc),
-                    selected = preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.HYBRID,
+                    isSelected = preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.HYBRID,
                     onClick = {
                         if (preferences.thumbnailGenerationStrategy == ThumbnailGenerationStrategy.HYBRID) return@SingleSelectablePreference
                         pendingChange = ThumbnailPreferenceChange.Strategy(ThumbnailGenerationStrategy.HYBRID)
@@ -137,7 +137,7 @@ private fun ThumbnailPreferencesContent(
             }
 
             PreferenceSlider(
-                enabled = preferences.thumbnailGenerationStrategy != ThumbnailGenerationStrategy.FIRST_FRAME,
+                isEnabled = preferences.thumbnailGenerationStrategy != ThumbnailGenerationStrategy.FIRST_FRAME,
                 modifier = Modifier.padding(vertical = 16.dp),
                 title = stringResource(R.string.frame_position),
                 description = stringResource(R.string.frame_position_value, frameSliderValue),

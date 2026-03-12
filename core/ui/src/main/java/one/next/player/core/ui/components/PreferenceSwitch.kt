@@ -10,7 +10,7 @@ fun PreferenceSwitch(
     title: String,
     description: String? = null,
     icon: ImageVector? = null,
-    enabled: Boolean = true,
+    isEnabled: Boolean = true,
     isChecked: Boolean = true,
     onClick: (() -> Unit) = {},
     isFirstItem: Boolean = false,
@@ -20,15 +20,15 @@ fun PreferenceSwitch(
         title = title,
         description = description,
         icon = icon,
-        enabled = enabled,
+        isEnabled = isEnabled,
         onClick = onClick,
         isFirstItem = isFirstItem,
         isLastItem = isLastItem,
         trailingContent = {
             NextSwitch(
-                checked = isChecked,
+                isChecked = isChecked,
                 onCheckedChange = null,
-                enabled = enabled,
+                isEnabled = isEnabled,
             )
         },
     )
