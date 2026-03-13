@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.Intent
 import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.media.audiofx.LoudnessEnhancer
 import android.net.Uri
 import android.os.Bundle
@@ -1135,7 +1136,9 @@ class PlayerService : MediaSessionService() {
 
                 val title = mediaItem.mediaMetadata.title ?: video?.nameWithExtension ?: getFilenameFromUri(uri)
                 val positionMs = mediaItem.mediaMetadata.positionMs ?: videoState?.position
-                val durationMs = mediaItem.mediaMetadata.durationMs ?: video?.duration?.takeIf { it > 0L }
+                val durationMs = mediaItem.mediaMetadata.durationMs
+                    ?: video?.duration?.takeIf { it > 0L }
+                    ?: extractDurationMs(uri)
                 val videoScale = mediaItem.mediaMetadata.videoZoom ?: videoState?.videoScale
                 val playbackSpeed = mediaItem.mediaMetadata.playbackSpeed ?: videoState?.playbackSpeed
                 val audioTrackIndex = mediaItem.mediaMetadata.audioTrackIndex ?: videoState?.audioTrackIndex
@@ -1172,6 +1175,19 @@ class PlayerService : MediaSessionService() {
                 }.build()
             }
         }.awaitAll()
+    }
+
+    // 从文件头快速提取时长，用于数据库无记录的外部文件
+    private fun extractDurationMs(uri: Uri): Long? = try {
+        val retriever = MediaMetadataRetriever()
+        retriever.setDataSource(applicationContext, uri)
+        val duration = retriever.extractMetadata(
+            MediaMetadataRetriever.METADATA_KEY_DURATION,
+        )?.toLongOrNull()
+        retriever.release()
+        duration?.takeIf { it > 0L }
+    } catch (_: Exception) {
+        null
     }
 
     private fun createMediaSource(mediaItem: MediaItem): MediaSource {

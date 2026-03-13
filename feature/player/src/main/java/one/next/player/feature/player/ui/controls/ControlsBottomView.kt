@@ -48,6 +48,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
@@ -135,7 +137,7 @@ fun ControlsBottomView(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_screen_rotation),
-                    contentDescription = null,
+                    contentDescription = "btn_rotate",
                     modifier = Modifier.size(12.dp),
                 )
             }
@@ -156,7 +158,7 @@ fun ControlsBottomView(
             PlayerButton(onClick = onLockControlsClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_lock_open),
-                    contentDescription = null,
+                    contentDescription = "btn_lock",
                 )
             }
             PlayerButton(
@@ -165,21 +167,21 @@ fun ControlsBottomView(
             ) {
                 Icon(
                     painter = painterResource(videoContentScale.drawableRes()),
-                    contentDescription = null,
+                    contentDescription = "btn_scale",
                 )
             }
             if (isPipSupported) {
                 PlayerButton(onClick = onPictureInPictureClick) {
                     Icon(
                         painter = painterResource(R.drawable.ic_pip),
-                        contentDescription = null,
+                        contentDescription = "btn_pip",
                     )
                 }
             }
             PlayerButton(onClick = onPlayInBackgroundClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_headset),
-                    contentDescription = null,
+                    contentDescription = "btn_background",
                 )
             }
             LoopButton(player = player)
@@ -239,7 +241,7 @@ private fun MaterialYouSlider(
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
         interactionSource = interactionSource,
-        modifier = modifier.size(24.dp),
+        modifier = modifier.size(24.dp).semantics { contentDescription = "slider_seek" },
         track = { sliderState ->
             val disabledAlpha = 0.4f
 
@@ -343,7 +345,7 @@ private fun SimpleSlider(
         valueRange = valueRange,
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
-        modifier = modifier.height(20.dp),
+        modifier = modifier.height(20.dp).semantics { contentDescription = "slider_seek" },
         thumb = {
             Box(
                 modifier = Modifier.size(16.dp)

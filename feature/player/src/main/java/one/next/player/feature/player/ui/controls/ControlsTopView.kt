@@ -47,7 +47,7 @@ fun ControlsTopView(
         PlayerButton(onClick = onBackClick) {
             Icon(
                 painter = painterResource(R.drawable.ic_arrow_left),
-                contentDescription = null,
+                contentDescription = "btn_back",
             )
         }
         Text(
@@ -66,25 +66,25 @@ fun ControlsTopView(
             PlayerButton(onClick = onPlaylistClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_playlist),
-                    contentDescription = null,
+                    contentDescription = "btn_playlist",
                 )
             }
             PlayerButton(onClick = onPlaybackSpeedClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_speed),
-                    contentDescription = null,
+                    contentDescription = "btn_speed",
                 )
             }
             PlayerButton(onClick = onAudioClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_audio_track),
-                    contentDescription = null,
+                    contentDescription = "btn_audio",
                 )
             }
             PlayerButton(onClick = onSubtitleClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_subtitle_track),
-                    contentDescription = null,
+                    contentDescription = "btn_subtitle",
                 )
             }
         }

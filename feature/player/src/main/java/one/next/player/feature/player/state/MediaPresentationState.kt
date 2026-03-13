@@ -90,6 +90,9 @@ class MediaPresentationState(
                 if (player.isPlaying) {
                     updatePosition()
                 }
+                if (duration == 0L) {
+                    updateDuration()
+                }
             }
         }
     }
