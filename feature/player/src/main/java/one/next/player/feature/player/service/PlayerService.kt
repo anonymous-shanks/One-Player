@@ -1006,7 +1006,7 @@ class PlayerService : MediaSessionService() {
             )
         }
 
-        val assHandler = AssHandler(renderType = AssRenderType.OVERLAY_CANVAS)
+        val assHandler = AssHandler(renderType = AssRenderType.OVERLAY_OPEN_GL)
         this.assHandler = assHandler
         AssHandlerRegistry.register(assHandler)
         val assSubtitleParserFactory = AssSubtitleParserFactory(assHandler)
