@@ -45,7 +45,6 @@ class SubtitlePreferencesViewModel @Inject constructor(
             SubtitlePreferencesUiEvent.ToggleSubtitleBackground -> toggleSubtitleBackground()
             SubtitlePreferencesUiEvent.ToggleApplyEmbeddedStyles -> toggleApplyEmbeddedStyles()
             is SubtitlePreferencesUiEvent.UpdateSubtitleEncoding -> updateSubtitleEncoding(event.value)
-            SubtitlePreferencesUiEvent.ToggleRememberSelections -> toggleRememberSelections()
             SubtitlePreferencesUiEvent.ToggleUseSystemCaptionStyle -> toggleUseSystemCaptionStyle()
         }
     }
@@ -110,14 +109,6 @@ class SubtitlePreferencesViewModel @Inject constructor(
         }
     }
 
-    private fun toggleRememberSelections() {
-        viewModelScope.launch {
-            preferencesRepository.updatePlayerPreferences {
-                it.copy(shouldRememberSelections = !it.shouldRememberSelections)
-            }
-        }
-    }
-
     private fun toggleUseSystemCaptionStyle() {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences { it.copy(shouldUseSystemCaptionStyle = !it.shouldUseSystemCaptionStyle) }
@@ -146,6 +137,5 @@ sealed interface SubtitlePreferencesUiEvent {
     data object ToggleSubtitleBackground : SubtitlePreferencesUiEvent
     data object ToggleApplyEmbeddedStyles : SubtitlePreferencesUiEvent
     data class UpdateSubtitleEncoding(val value: String) : SubtitlePreferencesUiEvent
-    data object ToggleRememberSelections : SubtitlePreferencesUiEvent
     data object ToggleUseSystemCaptionStyle : SubtitlePreferencesUiEvent
 }

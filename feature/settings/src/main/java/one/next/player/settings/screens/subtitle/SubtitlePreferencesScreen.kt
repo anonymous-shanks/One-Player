@@ -99,20 +99,13 @@ private fun SubtitlePreferencesContent(
             Column(
                 verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
             ) {
-                PreferenceSwitch(
-                    title = stringResource(id = R.string.remember_selections),
-                    description = stringResource(id = R.string.remember_selections_description),
-                    icon = NextIcons.Selection,
-                    isChecked = uiState.preferences.shouldRememberSelections,
-                    onClick = { onEvent(SubtitlePreferencesUiEvent.ToggleRememberSelections) },
-                    isFirstItem = true,
-                )
                 ClickablePreferenceItem(
                     title = stringResource(id = R.string.preferred_subtitle_lang),
                     description = LocalesHelper.getLocaleDisplayLanguage(uiState.preferences.preferredSubtitleLanguage)
                         .takeIf { it.isNotBlank() } ?: stringResource(R.string.preferred_subtitle_lang_description),
                     icon = NextIcons.Language,
                     onClick = { onEvent(SubtitlePreferencesUiEvent.ShowDialog(SubtitlePreferenceDialog.SubtitleLanguageDialog)) },
+                    isFirstItem = true,
                 )
                 ClickablePreferenceItem(
                     title = stringResource(R.string.subtitle_text_encoding),

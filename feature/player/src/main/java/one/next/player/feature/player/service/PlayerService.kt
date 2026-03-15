@@ -67,7 +67,6 @@ import io.github.peerless2012.ass.media.type.AssRenderType
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
-import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -110,7 +109,6 @@ import one.next.player.feature.player.extensions.setExtras
 import one.next.player.feature.player.extensions.setIsScrubbingModeEnabled
 import one.next.player.feature.player.extensions.subtitleDelayMilliseconds
 import one.next.player.feature.player.extensions.subtitleSpeed
-import one.next.player.feature.player.extensions.subtitleTrackIndex
 import one.next.player.feature.player.extensions.switchTrack
 import one.next.player.feature.player.extensions.uriToSubtitleConfiguration
 import one.next.player.feature.player.extensions.videoZoom
@@ -147,7 +145,6 @@ class PlayerService : MediaSessionService() {
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var currentVolumeGain: Int = 0
     private val mediaParserRetried = mutableSetOf<String>()
-    private val pendingLocalSubtitleLoads = Collections.synchronizedSet(mutableSetOf<String>())
     private var assHandler: AssHandler? = null
     private var pendingPreciseSeekPromotionJob: Job? = null
     private lateinit var fastStartMediaSourceFactory: DefaultMediaSourceFactory
@@ -317,14 +314,13 @@ class PlayerService : MediaSessionService() {
             val metadata = player.mediaMetadata
             if (playerPreferences.shouldRememberSelections) {
                 metadata.audioTrackIndex?.let { player.switchTrack(C.TRACK_TYPE_AUDIO, it) }
-                metadata.subtitleTrackIndex?.let { player.switchTrack(C.TRACK_TYPE_TEXT, it) }
             }
 
-            // 没有保存的字幕轨道选择且文本轨道未被禁用时，选中第一个字幕轨
-            val hasTextTrack = tracks.groups.any { it.type == C.TRACK_TYPE_TEXT && it.isSupported }
-            val isTextTrackDisabled = player.trackSelectionParameters.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)
-            if (metadata.subtitleTrackIndex == null && hasTextTrack && !isTextTrackDisabled) {
-                player.switchTrack(C.TRACK_TYPE_TEXT, 0)
+            // 有内置字幕时不加载外部字幕，无内置字幕时按需加载
+            val hasEmbeddedTextTracks = tracks.groups.any { it.type == C.TRACK_TYPE_TEXT && it.isSupported }
+            if (!hasEmbeddedTextTracks) {
+                val mediaId = player.currentMediaItem?.mediaId ?: return
+                loadExternalSubtitlesForCurrentItem(mediaId)
             }
         }
 
@@ -334,7 +330,6 @@ class PlayerService : MediaSessionService() {
             val currentMediaItem = player.currentMediaItem ?: return
 
             val audioTrackIndex = player.getManuallySelectedTrackIndex(C.TRACK_TYPE_AUDIO)
-            val subtitleTrackIndex = player.getManuallySelectedTrackIndex(C.TRACK_TYPE_TEXT)
 
             if (audioTrackIndex != null) {
                 serviceScope.launch {
@@ -345,20 +340,10 @@ class PlayerService : MediaSessionService() {
                 }
             }
 
-            if (subtitleTrackIndex != null) {
-                serviceScope.launch {
-                    mediaRepository.updateMediumSubtitleTrack(
-                        uri = currentMediaItem.mediaId,
-                        subtitleTrackIndex = subtitleTrackIndex,
-                    )
-                }
-            }
-
             player.replaceMediaItem(
                 player.currentMediaItemIndex,
                 currentMediaItem.copy(
                     audioTrackIndex = audioTrackIndex,
-                    subtitleTrackIndex = subtitleTrackIndex,
                 ),
             )
         }
@@ -433,7 +418,6 @@ class PlayerService : MediaSessionService() {
                     videoRotation = rotation,
                 ),
             )
-            scheduleDeferredLocalSubtitleLoad(currentMediaItem.mediaId)
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -801,10 +785,6 @@ class PlayerService : MediaSessionService() {
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = serviceScope.future(Dispatchers.Default) {
             val updatedMediaItems = updatedMediaItemsWithMetadata(mediaItems)
             loadArtworkInBackground(updatedMediaItems)
-            loadLocalSubtitlesInBackground(
-                mediaItems = updatedMediaItems,
-                deferredMediaId = updatedMediaItems.getOrNull(startIndex)?.mediaId,
-            )
             return@future MediaSession.MediaItemsWithStartPosition(updatedMediaItems, startIndex, startPositionMs)
         }
 
@@ -815,7 +795,6 @@ class PlayerService : MediaSessionService() {
         ): ListenableFuture<MutableList<MediaItem>> = serviceScope.future(Dispatchers.Default) {
             val updatedMediaItems = updatedMediaItemsWithMetadata(mediaItems)
             loadArtworkInBackground(updatedMediaItems)
-            loadLocalSubtitlesInBackground(updatedMediaItems)
             return@future updatedMediaItems.toMutableList()
         }
 
@@ -841,16 +820,9 @@ class PlayerService : MediaSessionService() {
                         uri = subtitleUri,
                         subtitleEncoding = playerPreferences.subtitleTextEncoding,
                     )
-                    val textTracks = player.currentTracks.groups.filter {
-                        it.type == C.TRACK_TYPE_TEXT && it.isSupported
-                    }
                     mediaRepository.updateMediumPosition(
                         uri = currentMediaItem.mediaId,
                         position = player.currentPosition,
-                    )
-                    mediaRepository.updateMediumSubtitleTrack(
-                        uri = currentMediaItem.mediaId,
-                        subtitleTrackIndex = textTracks.size,
                     )
                     mediaRepository.addExternalSubtitleToMedium(
                         uri = currentMediaItem.mediaId,
@@ -1142,12 +1114,6 @@ class PlayerService : MediaSessionService() {
                     )
                 }
                 val existingSubConfigurations = mediaItem.localConfiguration?.subtitleConfigurations ?: emptyList()
-                val externalSubConfigurations = validExternalSubs.map { subtitleUri ->
-                    uriToSubtitleConfiguration(
-                        uri = subtitleUri,
-                        subtitleEncoding = playerPreferences.subtitleTextEncoding,
-                    )
-                }
 
                 // 先写入占位封面，后台再异步加载真实封面
                 val artworkUri = getDefaultArtworkUri()
@@ -1160,7 +1126,6 @@ class PlayerService : MediaSessionService() {
                 val videoScale = mediaItem.mediaMetadata.videoZoom ?: videoState?.videoScale
                 val playbackSpeed = mediaItem.mediaMetadata.playbackSpeed ?: videoState?.playbackSpeed
                 val audioTrackIndex = mediaItem.mediaMetadata.audioTrackIndex ?: videoState?.audioTrackIndex
-                val subtitleTrackIndex = mediaItem.mediaMetadata.subtitleTrackIndex ?: videoState?.subtitleTrackIndex
                 val subtitleDelay = mediaItem.mediaMetadata.subtitleDelayMilliseconds ?: videoState?.subtitleDelayMilliseconds
                 val subtitleSpeed = mediaItem.mediaMetadata.subtitleSpeed ?: videoState?.subtitleSpeed
                 // MediaStore 返回的宽高已考虑 rotation，用于预设屏幕方向
@@ -1170,7 +1135,7 @@ class PlayerService : MediaSessionService() {
                 val isApproximateSeekEnabled = mediaPath?.endsWith(".mkv", ignoreCase = true) == true
 
                 mediaItem.buildUpon().apply {
-                    setSubtitleConfigurations(mergeSubtitleConfigurations(existingSubConfigurations, externalSubConfigurations))
+                    setSubtitleConfigurations(existingSubConfigurations)
                     setMediaMetadata(
                         MediaMetadata.Builder().apply {
                             setTitle(title)
@@ -1181,7 +1146,6 @@ class PlayerService : MediaSessionService() {
                                 videoScale = videoScale,
                                 playbackSpeed = playbackSpeed,
                                 audioTrackIndex = audioTrackIndex,
-                                subtitleTrackIndex = subtitleTrackIndex,
                                 subtitleDelayMilliseconds = subtitleDelay,
                                 subtitleSpeed = subtitleSpeed,
                                 videoWidth = videoWidth,
@@ -1407,82 +1371,60 @@ class PlayerService : MediaSessionService() {
         }
     }
 
-    private fun loadLocalSubtitlesInBackground(
-        mediaItems: List<MediaItem>,
-        deferredMediaId: String? = null,
-    ) {
+    // 无内置字幕时加载外部字幕（同名文件 + 已持久化的用户添加字幕）
+    private fun loadExternalSubtitlesForCurrentItem(mediaId: String) {
         serviceScope.launch(Dispatchers.IO) {
-            mediaItems.forEach { mediaItem ->
-                launch {
-                    scheduleLocalSubtitleLoad(
-                        mediaId = mediaItem.mediaId,
-                        shouldDefer = mediaItem.mediaId == deferredMediaId,
-                    )
-                }
+            val configurations = buildExternalSubtitleConfigurations(mediaId)
+            if (configurations.isEmpty()) return@launch
+
+            withContext(Dispatchers.Main) {
+                val (player, index, currentMediaItem) = findMediaItemInSession(mediaId) ?: return@withContext
+                val existingConfigs = currentMediaItem.localConfiguration?.subtitleConfigurations ?: emptyList()
+                val mergedConfigs = mergeSubtitleConfigurations(existingConfigs, configurations)
+                if (mergedConfigs.size == existingConfigs.size) return@withContext
+
+                val updatedMediaItem = currentMediaItem.buildUpon()
+                    .setSubtitleConfigurations(mergedConfigs)
+                    .build()
+                player.replaceMediaItem(index, updatedMediaItem)
+                Logger.info(TAG, "Applied external subtitles mediaId=$mediaId count=${configurations.size}")
             }
         }
     }
 
-    private suspend fun scheduleLocalSubtitleLoad(
+    private suspend fun buildExternalSubtitleConfigurations(
         mediaId: String,
-        shouldDefer: Boolean,
-    ) {
-        if (shouldDefer) {
-            if (pendingLocalSubtitleLoads.add(mediaId)) {
-                Logger.info(TAG, "Deferred local subtitle load until first frame mediaId=$mediaId")
-            }
-            return
-        }
-
-        applyLocalSubtitles(mediaId)
-    }
-
-    private fun scheduleDeferredLocalSubtitleLoad(mediaId: String) {
-        if (!pendingLocalSubtitleLoads.remove(mediaId)) return
-
-        Logger.info(TAG, "Loading deferred local subtitles mediaId=$mediaId")
-        serviceScope.launch(Dispatchers.IO) {
-            applyLocalSubtitles(mediaId)
-        }
-    }
-
-    private suspend fun applyLocalSubtitles(mediaId: String) {
-        val localSubConfigurations = buildLocalSubtitleConfigurations(mediaId)
-        if (localSubConfigurations.isEmpty()) return
-
-        withContext(Dispatchers.Main) {
-            val (player, index, currentMediaItem) = findMediaItemInSession(mediaId) ?: return@withContext
-            val currentSubtitleConfigurations = currentMediaItem.localConfiguration?.subtitleConfigurations ?: emptyList()
-            val mergedSubtitleConfigurations = mergeSubtitleConfigurations(
-                currentSubtitleConfigurations,
-                localSubConfigurations,
-            )
-            if (mergedSubtitleConfigurations.size == currentSubtitleConfigurations.size) return@withContext
-
-            val updatedMediaItem = currentMediaItem.buildUpon()
-                .setSubtitleConfigurations(mergedSubtitleConfigurations)
-                .build()
-            player.replaceMediaItem(index, updatedMediaItem)
-            Logger.info(
-                TAG,
-                "Applied local subtitles mediaId=$mediaId count=${localSubConfigurations.size} current=${player.currentMediaItem?.mediaId == mediaId}",
-            )
-        }
-    }
-
-    private suspend fun buildLocalSubtitleConfigurations(mediaId: String): List<MediaItem.SubtitleConfiguration> {
+    ): List<MediaItem.SubtitleConfiguration> {
         val uri = mediaId.toUri()
         val videoState = mediaRepository.getVideoState(uri = mediaId)
-        val externalSubs = videoState?.externalSubs ?: emptyList()
+        val dbExternalSubs = videoState?.externalSubs ?: emptyList()
+
+        // 验证已保存的外部字幕是否仍然存在
+        val validDbSubs = dbExternalSubs.filter { subUri ->
+            try {
+                contentResolver.openInputStream(subUri)?.close()
+                true
+            } catch (_: Exception) {
+                Logger.debug(TAG, "Removing stale external subtitle: $subUri")
+                false
+            }
+        }
+        if (validDbSubs.size != dbExternalSubs.size) {
+            mediaRepository.updateExternalSubs(uri = mediaId, externalSubs = validDbSubs)
+        }
+
+        // 发现同名本地字幕（排除已保存的）
         val localSubs = (videoState?.path ?: getPath(uri))?.let {
             File(it).getLocalSubtitles(
                 context = this@PlayerService,
-                excludeSubsList = externalSubs,
+                excludeSubsList = validDbSubs,
             )
         } ?: emptyList()
-        if (localSubs.isEmpty()) return emptyList()
 
-        return localSubs.map { subtitleUri ->
+        val allExternalSubs = validDbSubs + localSubs
+        if (allExternalSubs.isEmpty()) return emptyList()
+
+        return allExternalSubs.map { subtitleUri ->
             uriToSubtitleConfiguration(
                 uri = subtitleUri,
                 subtitleEncoding = playerPreferences.subtitleTextEncoding,
