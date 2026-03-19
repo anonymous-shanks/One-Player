@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -21,10 +24,20 @@ fun RadioButtonRow(
     modifier: Modifier = Modifier,
     isSelected: Boolean,
     text: String,
+    testTag: String? = null,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = modifier
+            .then(
+                if (testTag != null) {
+                    Modifier
+                        .testTag(testTag)
+                        .semantics { contentDescription = testTag }
+                } else {
+                    Modifier
+                },
+            )
             .fillMaxWidth()
             .clip(RoundedCornerShape(4.dp))
             .selectable(

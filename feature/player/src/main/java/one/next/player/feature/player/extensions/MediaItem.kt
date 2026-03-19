@@ -15,6 +15,7 @@ private const val MEDIA_METADATA_VIDEO_WIDTH_KEY = "media_metadata_video_width"
 private const val MEDIA_METADATA_VIDEO_HEIGHT_KEY = "media_metadata_video_height"
 private const val MEDIA_METADATA_VIDEO_ROTATION_KEY = "media_metadata_video_rotation"
 private const val MEDIA_METADATA_APPROXIMATE_SEEK_ENABLED_KEY = "media_metadata_approximate_seek_enabled"
+private const val MEDIA_METADATA_REQUEST_HEADERS_PREFIX = "media_metadata_request_header_"
 
 private fun Bundle.setExtras(
     positionMs: Long?,
@@ -54,6 +55,7 @@ fun MediaMetadata.Builder.setExtras(
     videoHeight: Int? = null,
     videoRotation: Int? = null,
     isApproximateSeekEnabled: Boolean? = null,
+    requestHeaders: Map<String, String> = emptyMap(),
 ): MediaMetadata.Builder = setExtras(
     Bundle().setExtras(
         positionMs = positionMs,
@@ -67,7 +69,11 @@ fun MediaMetadata.Builder.setExtras(
         videoHeight = videoHeight,
         videoRotation = videoRotation,
         isApproximateSeekEnabled = isApproximateSeekEnabled,
-    ),
+    ).apply {
+        requestHeaders.forEach { (key, value) ->
+            putString("$MEDIA_METADATA_REQUEST_HEADERS_PREFIX$key", value)
+        }
+    },
 )
 
 val MediaMetadata.positionMs: Long?
@@ -133,6 +139,15 @@ val MediaMetadata.videoRotation: Int?
 val MediaMetadata.isApproximateSeekEnabled: Boolean
     get() = extras?.getBoolean(MEDIA_METADATA_APPROXIMATE_SEEK_ENABLED_KEY, false) == true
 
+val MediaMetadata.requestHeaders: Map<String, String>
+    get() = extras?.keySet()
+        ?.filter { it.startsWith(MEDIA_METADATA_REQUEST_HEADERS_PREFIX) }
+        ?.associate { key ->
+            key.removePrefix(MEDIA_METADATA_REQUEST_HEADERS_PREFIX) to extras?.getString(key).orEmpty()
+        }
+        ?.filterValues { it.isNotEmpty() }
+        ?: emptyMap()
+
 fun MediaItem.copy(
     positionMs: Long? = this.mediaMetadata.positionMs,
     durationMs: Long? = this.mediaMetadata.durationMs,
@@ -146,6 +161,7 @@ fun MediaItem.copy(
     videoHeight: Int? = this.mediaMetadata.videoHeight,
     videoRotation: Int? = this.mediaMetadata.videoRotation,
     isApproximateSeekEnabled: Boolean? = this.mediaMetadata.isApproximateSeekEnabled,
+    requestHeaders: Map<String, String> = this.mediaMetadata.requestHeaders,
 ): MediaItem = buildUpon().setMediaMetadata(
     mediaMetadata.buildUpon()
         .setDurationMs(durationMs)
@@ -162,6 +178,10 @@ fun MediaItem.copy(
                 videoHeight = videoHeight,
                 videoRotation = videoRotation,
                 isApproximateSeekEnabled = isApproximateSeekEnabled,
-            ),
+            ).apply {
+                requestHeaders.forEach { (key, value) ->
+                    putString("$MEDIA_METADATA_REQUEST_HEADERS_PREFIX$key", value)
+                }
+            },
         ).build(),
 ).build()

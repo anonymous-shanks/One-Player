@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,6 +67,7 @@ fun BoxScope.SubtitleSelectorView(
         modifier = modifier,
         shouldShow = shouldShow,
         title = stringResource(R.string.select_subtitle_track),
+        testTag = "panel_subtitle_selector",
     ) {
         Column(
             modifier = Modifier
@@ -78,6 +80,7 @@ fun BoxScope.SubtitleSelectorView(
                 RadioButtonRow(
                     isSelected = track.isSelected,
                     text = track.mediaTrackGroup.getName(C.TRACK_TYPE_TEXT, index),
+                    testTag = "item_subtitle_$index",
                     onClick = {
                         subtitleTracksState.switchTrack(index)
                         onDismiss()
@@ -87,6 +90,7 @@ fun BoxScope.SubtitleSelectorView(
             RadioButtonRow(
                 isSelected = subtitleTracksState.tracks.none { it.isSelected },
                 text = stringResource(R.string.disable),
+                testTag = "item_subtitle_disable",
                 onClick = {
                     subtitleTracksState.switchTrack(-1)
                     onDismiss()
@@ -94,7 +98,9 @@ fun BoxScope.SubtitleSelectorView(
             )
             Spacer(modifier = Modifier.size(16.dp))
             FilledTonalButton(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("btn_open_subtitle_picker"),
                 onClick = {
                     onSelectSubtitleClick()
                     onDismiss()
@@ -134,6 +140,9 @@ private fun DelayInput(
     NumberChooserInput(
         title = stringResource(R.string.delay),
         value = valueString,
+        textFieldTestTag = "input_subtitle_delay",
+        decrementButtonTestTag = "btn_subtitle_delay_decrement",
+        incrementButtonTestTag = "btn_subtitle_delay_increment",
         suffix = { Text(text = "sec") },
         onValueChange = { newValue ->
             if (newValue.isBlank()) {
@@ -185,6 +194,9 @@ private fun SpeedInput(
     NumberChooserInput(
         title = stringResource(R.string.speed),
         value = valueString,
+        textFieldTestTag = "input_subtitle_speed",
+        decrementButtonTestTag = "btn_subtitle_speed_decrement",
+        incrementButtonTestTag = "btn_subtitle_speed_increment",
         suffix = { Text(text = "x") },
         onValueChange = { newValue ->
             if (newValue.isBlank()) {
@@ -222,6 +234,9 @@ private fun NumberChooserInput(
     modifier: Modifier = Modifier,
     title: String,
     value: String,
+    textFieldTestTag: String? = null,
+    decrementButtonTestTag: String? = null,
+    incrementButtonTestTag: String? = null,
     onValueChange: (String) -> Unit,
     onIncrement: () -> Unit = {},
     onDecrement: () -> Unit = {},
@@ -234,7 +249,9 @@ private fun NumberChooserInput(
     ) {
         FilledTonalIconButton(
             onClick = { },
-            modifier = Modifier.repeatingClickable(onClick = onDecrement),
+            modifier = Modifier
+                .then(decrementButtonTestTag?.let(Modifier::testTag) ?: Modifier)
+                .repeatingClickable(onClick = onDecrement),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_remove),
@@ -245,7 +262,9 @@ private fun NumberChooserInput(
             label = { Text(text = title) },
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .then(textFieldTestTag?.let(Modifier::testTag) ?: Modifier),
             suffix = suffix,
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -254,7 +273,9 @@ private fun NumberChooserInput(
         )
         FilledTonalIconButton(
             onClick = { },
-            modifier = Modifier.repeatingClickable(onClick = onIncrement),
+            modifier = Modifier
+                .then(incrementButtonTestTag?.let(Modifier::testTag) ?: Modifier)
+                .repeatingClickable(onClick = onIncrement),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_add),

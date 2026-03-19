@@ -11,7 +11,6 @@ import android.view.WindowManager
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -21,6 +20,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.content.ContextCompat
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.LifecycleStartEffect
@@ -51,6 +54,7 @@ import one.next.player.core.common.storagePermission
 import one.next.player.core.media.sync.MediaSynchronizer
 import one.next.player.core.model.ScreenOrientation
 import one.next.player.core.ui.theme.NextPlayerTheme
+import one.next.player.feature.player.extensions.OpenDocumentWithInitialUri
 import one.next.player.feature.player.extensions.registerForSuspendActivityResult
 import one.next.player.feature.player.extensions.setExtras
 import one.next.player.feature.player.extensions.uriToSubtitleConfiguration
@@ -87,7 +91,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private val playbackStateListener: Player.Listener = playbackStateListener()
 
-    private val subtitleFileSuspendLauncher = registerForSuspendActivityResult(OpenDocument())
+    private val subtitleFileSuspendLauncher = registerForSuspendActivityResult(OpenDocumentWithInitialUri())
     private val mediaPermissionLauncher = registerForActivityResult(RequestPermission()) { isGranted ->
         if (!isGranted) return@registerForActivityResult
 
@@ -102,6 +106,7 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyPrivacyProtection(
@@ -146,20 +151,26 @@ class PlayerActivity : AppCompatActivity() {
             CompositionLocalProvider(LocalUseMaterialYouControls provides (uiState.playerPreferences?.shouldUseMaterialYouControls == true)) {
                 NextPlayerTheme(shouldUseDarkTheme = true) {
                     MediaPlayerScreen(
+                        modifier = Modifier.semantics {
+                            testTagsAsResourceId = true
+                        },
                         player = player,
                         viewModel = viewModel,
                         playerPreferences = uiState.playerPreferences ?: return@NextPlayerTheme,
                         onSelectSubtitleClick = {
                             lifecycleScope.launch {
                                 val uri = subtitleFileSuspendLauncher.launch(
-                                    arrayOf(
-                                        MimeTypes.APPLICATION_SUBRIP,
-                                        MimeTypes.APPLICATION_TTML,
-                                        MimeTypes.TEXT_VTT,
-                                        MimeTypes.TEXT_SSA,
-                                        MimeTypes.BASE_TYPE_APPLICATION + "/octet-stream",
-                                        MimeTypes.BASE_TYPE_TEXT + "/*",
-                                        MimeTypes.BASE_TYPE_AUDIO + "/aac",
+                                    OpenDocumentWithInitialUri.Input(
+                                        mimeTypes = arrayOf(
+                                            MimeTypes.APPLICATION_SUBRIP,
+                                            MimeTypes.APPLICATION_TTML,
+                                            MimeTypes.TEXT_VTT,
+                                            MimeTypes.TEXT_SSA,
+                                            MimeTypes.BASE_TYPE_APPLICATION + "/octet-stream",
+                                            MimeTypes.BASE_TYPE_TEXT + "/*",
+                                            MimeTypes.BASE_TYPE_AUDIO + "/aac",
+                                        ),
+                                        initialUri = intent.getParcelableExtra("initial_subtitle_directory_uri"),
                                     ),
                                 ) ?: return@launch
                                 contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -255,6 +266,7 @@ class PlayerActivity : AppCompatActivity() {
         Logger.info(TAG, "playVideo start uri=$uri")
 
         val playbackUri = resolvePlaybackUri(uri)
+        val requestHeaders = buildRequestHeadersFromIntent()
         if (uri.scheme == "file") {
             uri.path?.let { path ->
                 mediaSynchronizer.registerManualVideoPath(path)
@@ -293,7 +305,10 @@ class PlayerActivity : AppCompatActivity() {
                     setMediaMetadata(
                         MediaMetadata.Builder().apply {
                             setTitle(playerApi.title)
-                            setExtras(positionMs = playerApi.position?.toLong())
+                            setExtras(
+                                positionMs = playerApi.position?.toLong(),
+                                requestHeaders = requestHeaders,
+                            )
                         }.build(),
                     )
                     val apiSubs = playerApi.getSubs().map { subtitle ->
@@ -360,6 +375,16 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         return uri
+    }
+
+    private fun buildRequestHeadersFromIntent(): Map<String, String> {
+        val headerBundle = intent.getBundleExtra("headers") ?: return emptyMap()
+        return buildMap {
+            for (key in headerBundle.keySet()) {
+                val value = headerBundle.getString(key).orEmpty()
+                if (value.isNotEmpty()) put(key, value)
+            }
+        }
     }
 
     private fun hasMediaReadPermission(): Boolean = ContextCompat.checkSelfPermission(this, storagePermission) == android.content.pm.PackageManager.PERMISSION_GRANTED

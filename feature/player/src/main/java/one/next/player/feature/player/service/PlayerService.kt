@@ -28,13 +28,16 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.drm.DrmSessionManagerProvider
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.Extractor
 import androidx.media3.extractor.ExtractorInput
@@ -87,15 +90,21 @@ import one.next.player.core.common.extensions.getFilenameFromUri
 import one.next.player.core.common.extensions.getLocalSubtitles
 import one.next.player.core.common.extensions.getPath
 import one.next.player.core.common.extensions.subtitleCacheDir
+import one.next.player.core.data.remote.SmbClient
+import one.next.player.core.data.remote.WebDavClient
 import one.next.player.core.data.repository.MediaRepository
 import one.next.player.core.data.repository.PreferencesRepository
 import one.next.player.core.model.DecoderPriority
 import one.next.player.core.model.LoopMode
 import one.next.player.core.model.PlayerPreferences
+import one.next.player.core.model.RemoteFile
+import one.next.player.core.model.RemoteServer
 import one.next.player.core.model.Resume
+import one.next.player.core.model.ServerProtocol
 import one.next.player.core.ui.R as coreUiR
 import one.next.player.feature.player.PlayerActivity
 import one.next.player.feature.player.R
+import one.next.player.feature.player.datasource.SmbDataSource
 import one.next.player.feature.player.engine.media3.MkvCuesParser
 import one.next.player.feature.player.engine.media3.SeekMapInjectingExtractor
 import one.next.player.feature.player.engine.media3.buildSeekMapFromCues
@@ -103,9 +112,11 @@ import one.next.player.feature.player.extensions.addAdditionalSubtitleConfigurat
 import one.next.player.feature.player.extensions.audioTrackIndex
 import one.next.player.feature.player.extensions.copy
 import one.next.player.feature.player.extensions.getManuallySelectedTrackIndex
+import one.next.player.feature.player.extensions.getSubtitleMime
 import one.next.player.feature.player.extensions.isApproximateSeekEnabled
 import one.next.player.feature.player.extensions.playbackSpeed
 import one.next.player.feature.player.extensions.positionMs
+import one.next.player.feature.player.extensions.requestHeaders
 import one.next.player.feature.player.extensions.setExtras
 import one.next.player.feature.player.extensions.setIsScrubbingModeEnabled
 import one.next.player.feature.player.extensions.subtitleDelayMilliseconds
@@ -145,6 +156,13 @@ class PlayerService : MediaSessionService() {
             "ind" to "id",
             "msa" to "ms", "may" to "ms",
         )
+        private val REMOTE_SUBTITLE_EXTENSIONS = setOf(
+            "ass",
+            "srt",
+            "ssa",
+            "ttml",
+            "vtt",
+        )
     }
 
     @Inject
@@ -152,6 +170,12 @@ class PlayerService : MediaSessionService() {
 
     @Inject
     lateinit var mediaRepository: MediaRepository
+
+    @Inject
+    lateinit var webDavClient: WebDavClient
+
+    @Inject
+    lateinit var smbClient: SmbClient
 
     @Inject
     lateinit var imageLoader: ImageLoader
@@ -171,6 +195,9 @@ class PlayerService : MediaSessionService() {
     private var pendingPreciseSeekPromotionJob: Job? = null
     private lateinit var fastStartMediaSourceFactory: DefaultMediaSourceFactory
     private lateinit var preciseSeekMediaSourceFactory: DefaultMediaSourceFactory
+    private var sessionLoadErrorHandlingPolicy: LoadErrorHandlingPolicy? = null
+    private var sessionDrmSessionManagerProvider: DrmSessionManagerProvider? = null
+    private lateinit var sessionMediaSourceFactory: MediaSource.Factory
     private lateinit var assSubtitleParserFactory: AssSubtitleParserFactory
 
     // mediaId 对应预解析 IndexSeekMap
@@ -364,8 +391,11 @@ class PlayerService : MediaSessionService() {
                 val bestIndex = findBestSubtitleTrackIndex(textTracks)
                 player.switchTrack(C.TRACK_TYPE_TEXT, bestIndex)
             } else {
-                val mediaId = player.currentMediaItem?.mediaId ?: return
-                loadExternalSubtitlesForCurrentItem(mediaId)
+                val currentMediaItem = player.currentMediaItem ?: return
+                loadExternalSubtitlesForCurrentItem(
+                    mediaId = currentMediaItem.mediaId,
+                    requestHeaders = currentMediaItem.mediaMetadata.requestHeaders,
+                )
             }
         }
 
@@ -1052,9 +1082,24 @@ class PlayerService : MediaSessionService() {
             assHandler = assHandler,
             shouldUseFastStart = false,
         )
+        sessionMediaSourceFactory = object : MediaSource.Factory {
+            override fun setDrmSessionManagerProvider(drmSessionManagerProvider: DrmSessionManagerProvider): MediaSource.Factory {
+                sessionDrmSessionManagerProvider = drmSessionManagerProvider
+                return this
+            }
+
+            override fun setLoadErrorHandlingPolicy(loadErrorHandlingPolicy: LoadErrorHandlingPolicy): MediaSource.Factory {
+                sessionLoadErrorHandlingPolicy = loadErrorHandlingPolicy
+                return this
+            }
+
+            override fun getSupportedTypes(): IntArray = fastStartMediaSourceFactory.supportedTypes
+
+            override fun createMediaSource(mediaItem: MediaItem): MediaSource = this@PlayerService.createMediaSource(mediaItem)
+        }
 
         val player = ExoPlayer.Builder(applicationContext)
-            .setMediaSourceFactory(fastStartMediaSourceFactory)
+            .setMediaSourceFactory(sessionMediaSourceFactory)
             .setRenderersFactory(renderersFactory.withAssSupport(assHandler))
             .setTrackSelector(trackSelector)
             .setAudioAttributes(
@@ -1177,7 +1222,8 @@ class PlayerService : MediaSessionService() {
                 val videoWidth = video?.width
                 val videoHeight = video?.height
                 val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path
-                val isApproximateSeekEnabled = mediaPath?.endsWith(".mkv", ignoreCase = true) == true
+                val isLocalUri = uri.scheme == ContentResolver.SCHEME_FILE || uri.scheme == ContentResolver.SCHEME_CONTENT
+                val isApproximateSeekEnabled = isLocalUri && mediaPath?.endsWith(".mkv", ignoreCase = true) == true
 
                 mediaItem.buildUpon().apply {
                     setSubtitleConfigurations(existingSubConfigurations)
@@ -1196,6 +1242,7 @@ class PlayerService : MediaSessionService() {
                                 videoWidth = videoWidth,
                                 videoHeight = videoHeight,
                                 isApproximateSeekEnabled = isApproximateSeekEnabled,
+                                requestHeaders = mediaItem.mediaMetadata.requestHeaders,
                             )
                         }.build(),
                     )
@@ -1218,22 +1265,74 @@ class PlayerService : MediaSessionService() {
     }
 
     private fun createMediaSource(mediaItem: MediaItem): MediaSource {
+        val requestHeaders = mediaItem.mediaMetadata.requestHeaders
+        val uri = mediaItem.localConfiguration?.uri
+        val isRemoteSource = uri?.scheme == "smb" || requestHeaders.isNotEmpty()
+        val dataSourceFactory = createDataSourceFactory(uri, requestHeaders)
         val cachedSeekMap = mkvSeekMapCache[mediaItem.mediaId]
         if (cachedSeekMap != null) {
             // 使用预解析的 SeekMap 注入到 extractor，跳过慢速 Cues 加载
             val factory = DefaultMediaSourceFactory(
-                DefaultDataSource.Factory(applicationContext),
+                dataSourceFactory,
                 createSeekMapInjectedExtractorsFactory(cachedSeekMap),
             ).setSubtitleParserFactory(assSubtitleParserFactory)
+            sessionLoadErrorHandlingPolicy?.let(factory::setLoadErrorHandlingPolicy)
+            sessionDrmSessionManagerProvider?.let(factory::setDrmSessionManagerProvider)
             return factory.createMediaSource(mediaItem)
         }
 
-        val mediaSourceFactory = if (mediaItem.mediaMetadata.isApproximateSeekEnabled) {
-            fastStartMediaSourceFactory
-        } else {
-            preciseSeekMediaSourceFactory
+        val currentAssHandler = assHandler
+        if (!isRemoteSource && currentAssHandler == null) {
+            return if (mediaItem.mediaMetadata.isApproximateSeekEnabled) {
+                fastStartMediaSourceFactory.createMediaSource(mediaItem)
+            } else {
+                preciseSeekMediaSourceFactory.createMediaSource(mediaItem)
+            }
         }
-        return mediaSourceFactory.createMediaSource(mediaItem)
+
+        if (currentAssHandler != null) {
+            val mediaSourceFactory = DefaultMediaSourceFactory(
+                dataSourceFactory,
+                createPlaybackExtractorsFactory(
+                    assSubtitleParserFactory = assSubtitleParserFactory,
+                    assHandler = currentAssHandler,
+                    shouldUseFastStart = mediaItem.mediaMetadata.isApproximateSeekEnabled,
+                ),
+            ).setSubtitleParserFactory(assSubtitleParserFactory)
+            sessionLoadErrorHandlingPolicy?.let(mediaSourceFactory::setLoadErrorHandlingPolicy)
+            sessionDrmSessionManagerProvider?.let(mediaSourceFactory::setDrmSessionManagerProvider)
+            return mediaSourceFactory.createMediaSource(mediaItem)
+        }
+
+        return DefaultMediaSourceFactory(dataSourceFactory)
+            .apply {
+                sessionLoadErrorHandlingPolicy?.let(::setLoadErrorHandlingPolicy)
+                sessionDrmSessionManagerProvider?.let(::setDrmSessionManagerProvider)
+            }
+            .setSubtitleParserFactory(assSubtitleParserFactory)
+            .createMediaSource(mediaItem)
+    }
+
+    private fun createDataSourceFactory(
+        uri: Uri?,
+        requestHeaders: Map<String, String>,
+    ): DataSource.Factory {
+        if (uri?.scheme == "smb") {
+            val username = requestHeaders["_smb_username"].orEmpty()
+            val password = requestHeaders["_smb_password"].orEmpty()
+            return SmbDataSource.Factory(username, password)
+        }
+
+        val httpHeaders = requestHeaders.filterKeys { !it.startsWith("_") }
+        if (httpHeaders.isEmpty()) {
+            return DefaultDataSource.Factory(applicationContext)
+        }
+
+        val httpFactory = DefaultHttpDataSource.Factory().apply {
+            setAllowCrossProtocolRedirects(true)
+            setDefaultRequestProperties(httpHeaders)
+        }
+        return DefaultDataSource.Factory(applicationContext, httpFactory)
     }
 
     private fun promoteCurrentItemToPreciseSeek(targetPositionMs: Long): SessionResult {
@@ -1417,9 +1516,12 @@ class PlayerService : MediaSessionService() {
     }
 
     // 无内置字幕时加载外部字幕（同名文件 + 已持久化的用户添加字幕）
-    private fun loadExternalSubtitlesForCurrentItem(mediaId: String) {
+    private fun loadExternalSubtitlesForCurrentItem(
+        mediaId: String,
+        requestHeaders: Map<String, String>,
+    ) {
         serviceScope.launch(Dispatchers.IO) {
-            val configurations = buildExternalSubtitleConfigurations(mediaId)
+            val configurations = buildExternalSubtitleConfigurations(mediaId, requestHeaders)
             if (configurations.isEmpty()) return@launch
 
             withContext(Dispatchers.Main) {
@@ -1431,8 +1533,13 @@ class PlayerService : MediaSessionService() {
                 val updatedMediaItem = currentMediaItem.buildUpon()
                     .setSubtitleConfigurations(mergedConfigs)
                     .build()
+                val currentPosition = player.currentPosition
+                val shouldPlayWhenReady = player.playWhenReady
                 isPendingExternalSubAutoSelect = true
-                player.replaceMediaItem(index, updatedMediaItem)
+                player.addMediaItem(index + 1, updatedMediaItem)
+                player.seekTo(index + 1, currentPosition)
+                player.playWhenReady = shouldPlayWhenReady
+                player.removeMediaItem(index)
                 Logger.info(TAG, "Applied external subtitles mediaId=$mediaId count=${configurations.size}")
             }
         }
@@ -1440,6 +1547,7 @@ class PlayerService : MediaSessionService() {
 
     private suspend fun buildExternalSubtitleConfigurations(
         mediaId: String,
+        requestHeaders: Map<String, String>,
     ): List<MediaItem.SubtitleConfiguration> {
         val uri = mediaId.toUri()
         val videoState = mediaRepository.getVideoState(uri = mediaId)
@@ -1452,16 +1560,107 @@ class PlayerService : MediaSessionService() {
                 excludeSubsList = dbExternalSubs,
             )
         } ?: emptyList()
+        val remoteSubs = buildRemoteSubtitleUris(
+            videoUri = uri,
+            requestHeaders = requestHeaders,
+            excludeSubsList = dbExternalSubs,
+        )
 
-        val allExternalSubs = dbExternalSubs + localSubs
+        val allExternalSubs = dbExternalSubs + localSubs + remoteSubs
         if (allExternalSubs.isEmpty()) return emptyList()
 
         return allExternalSubs.map { subtitleUri ->
-            uriToSubtitleConfiguration(
-                uri = subtitleUri,
-                subtitleEncoding = playerPreferences.subtitleTextEncoding,
-            )
+            if (subtitleUri.scheme == "smb") {
+                buildDirectSubtitleConfiguration(subtitleUri)
+            } else {
+                uriToSubtitleConfiguration(
+                    uri = subtitleUri,
+                    subtitleEncoding = playerPreferences.subtitleTextEncoding,
+                )
+            }
         }
+    }
+
+    private suspend fun buildRemoteSubtitleUris(
+        videoUri: Uri,
+        requestHeaders: Map<String, String>,
+        excludeSubsList: List<Uri>,
+    ): List<Uri> {
+        val fileName = getFilenameFromUri(videoUri)
+        val videoName = fileName.substringBeforeLast('.', missingDelimiterValue = fileName)
+        val excludedUris = excludeSubsList.map(Uri::toString).toSet()
+        val subtitleFiles = when (videoUri.scheme) {
+            "smb" -> listRemoteSmbDirectory(videoUri, requestHeaders)
+            "http", "https" -> listRemoteWebDavDirectory(videoUri, requestHeaders)
+            else -> emptyList()
+        }
+
+        return subtitleFiles
+            .filter { !it.isDirectory }
+            .filter { it.hasSubtitleExtension() }
+            .filter { it.name.substringBeforeLast('.', missingDelimiterValue = it.name).equals(videoName, ignoreCase = true) }
+            .map { remoteFile -> buildRemoteSubtitleUri(videoUri, remoteFile) }
+            .filter { subtitleUri -> subtitleUri.toString() !in excludedUris }
+    }
+
+    private suspend fun listRemoteSmbDirectory(
+        videoUri: Uri,
+        requestHeaders: Map<String, String>,
+    ): List<RemoteFile> {
+        val host = videoUri.host ?: return emptyList()
+        val shareName = videoUri.pathSegments.firstOrNull() ?: return emptyList()
+        val directoryPath = "/${videoUri.pathSegments.dropLast(1).joinToString("/")}/"
+        val server = RemoteServer(
+            name = host,
+            protocol = ServerProtocol.SMB,
+            host = host,
+            port = videoUri.port.takeIf { it > 0 } ?: 445,
+            path = "/$shareName",
+            username = requestHeaders["_smb_username"].orEmpty(),
+            password = requestHeaders["_smb_password"].orEmpty(),
+        )
+        return smbClient.listDirectory(server, directoryPath).getOrElse { emptyList() }
+    }
+
+    private suspend fun listRemoteWebDavDirectory(
+        videoUri: Uri,
+        requestHeaders: Map<String, String>,
+    ): List<RemoteFile> {
+        val host = videoUri.host ?: return emptyList()
+        val directoryPath = videoUri.path
+            ?.substringBeforeLast('/', missingDelimiterValue = "")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "$it/" }
+            ?: "/"
+        val server = RemoteServer(
+            name = host,
+            protocol = ServerProtocol.WEBDAV,
+            host = host,
+            port = videoUri.port.takeIf { it > 0 },
+            path = directoryPath,
+            username = requestHeaders["_webdav_username"].orEmpty(),
+            password = requestHeaders["_webdav_password"].orEmpty(),
+        )
+        return webDavClient.listDirectory(server, directoryPath).getOrElse { emptyList() }
+    }
+
+    private fun buildRemoteSubtitleUri(videoUri: Uri, remoteFile: RemoteFile): Uri = Uri.parse(
+        "${videoUri.scheme}://${videoUri.authority}${remoteFile.path}",
+    )
+
+    private fun RemoteFile.hasSubtitleExtension(): Boolean {
+        val extension = name.substringAfterLast('.', missingDelimiterValue = "")
+        if (extension.isBlank()) return false
+        return extension.lowercase() in REMOTE_SUBTITLE_EXTENSIONS
+    }
+
+    private fun buildDirectSubtitleConfiguration(uri: Uri): MediaItem.SubtitleConfiguration {
+        val label = getFilenameFromUri(uri)
+        return MediaItem.SubtitleConfiguration.Builder(uri).apply {
+            setId(uri.toString())
+            setMimeType(uri.getSubtitleMime(displayName = label))
+            setLabel(label)
+        }.build()
     }
 
     private fun mergeSubtitleConfigurations(

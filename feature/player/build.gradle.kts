@@ -74,6 +74,7 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.guava)
+    implementation(libs.smbj)
 
     // Hilt 依赖
     implementation(libs.hilt.android)

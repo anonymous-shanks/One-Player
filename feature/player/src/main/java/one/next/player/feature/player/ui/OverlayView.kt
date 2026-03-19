@@ -28,6 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import one.next.player.core.ui.theme.NextPlayerTheme
@@ -37,6 +40,7 @@ fun BoxScope.OverlayView(
     modifier: Modifier = Modifier,
     shouldShow: Boolean,
     title: String,
+    testTag: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val configuration = LocalConfiguration.current
@@ -60,6 +64,15 @@ fun BoxScope.OverlayView(
         Surface(
             shape = RoundedCornerShape(16.dp),
             modifier = modifier
+                .then(
+                    if (testTag != null) {
+                        Modifier
+                            .testTag(testTag)
+                            .semantics { contentDescription = testTag }
+                    } else {
+                        Modifier
+                    },
+                )
                 .then(
                     if (configuration.isPortrait) {
                         Modifier
