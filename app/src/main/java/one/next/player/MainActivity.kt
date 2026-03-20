@@ -183,6 +183,9 @@ class MainActivity : AppCompatActivity() {
                     val mainNavController = rememberNavController()
                     val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
+                    val topLevelTabs = TopLevelTab.entries.filter { tab ->
+                        tab != TopLevelTab.CLOUD || preferences?.shouldShowCloudTab != false
+                    }
 
                     Scaffold(
                         modifier = Modifier.semantics {
@@ -190,7 +193,7 @@ class MainActivity : AppCompatActivity() {
                         },
                         bottomBar = {
                             NavigationBar {
-                                TopLevelTab.entries.forEach { tab ->
+                                topLevelTabs.forEach { tab ->
                                     val isSelected = currentDestination?.hierarchy?.any { destination ->
                                         when (tab) {
                                             TopLevelTab.LOCAL -> destination.hasRoute<MediaRootRoute>()

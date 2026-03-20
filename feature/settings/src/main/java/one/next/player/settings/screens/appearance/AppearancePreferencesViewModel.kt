@@ -42,6 +42,7 @@ class AppearancePreferencesViewModel @Inject constructor(
             is AppearancePreferencesEvent.UpdateAppLanguage -> updateAppLanguage(event.languageTag)
             AppearancePreferencesEvent.ToggleUseDynamicColors -> toggleUseDynamicColors()
             AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme -> toggleUseHighContrastDarkTheme()
+            AppearancePreferencesEvent.ToggleShowCloudTab -> toggleShowCloudTab()
         }
     }
 
@@ -93,6 +94,14 @@ class AppearancePreferencesViewModel @Inject constructor(
             }
         }
     }
+
+    private fun toggleShowCloudTab() {
+        viewModelScope.launch {
+            preferencesRepository.updateApplicationPreferences {
+                it.copy(shouldShowCloudTab = !it.shouldShowCloudTab)
+            }
+        }
+    }
 }
 
 @Stable
@@ -108,6 +117,7 @@ sealed interface AppearancePreferencesEvent {
     data class UpdateAppLanguage(val languageTag: String) : AppearancePreferencesEvent
     data object ToggleUseDynamicColors : AppearancePreferencesEvent
     data object ToggleUseHighContrastDarkTheme : AppearancePreferencesEvent
+    data object ToggleShowCloudTab : AppearancePreferencesEvent
 }
 
 sealed interface AppearancePreferenceDialog {

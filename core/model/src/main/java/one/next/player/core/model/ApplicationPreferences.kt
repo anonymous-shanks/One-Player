@@ -10,6 +10,7 @@ data class ApplicationPreferences(
     val themeConfig: ThemeConfig = ThemeConfig.SYSTEM,
     val shouldUseHighContrastDarkTheme: Boolean = false,
     val shouldUseDynamicColors: Boolean = true,
+    val shouldShowCloudTab: Boolean = true,
     val shouldPreventScreenshots: Boolean = false,
     val shouldHideInRecents: Boolean = false,
     val shouldMarkLastPlayedMedia: Boolean = true,

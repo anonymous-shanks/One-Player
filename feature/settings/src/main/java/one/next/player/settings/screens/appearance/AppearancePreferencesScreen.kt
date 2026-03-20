@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -119,9 +120,17 @@ private fun AppearancePreferencesContent(
                         icon = NextIcons.Appearance,
                         isChecked = uiState.preferences.shouldUseDynamicColors,
                         onClick = { onEvent(AppearancePreferencesEvent.ToggleUseDynamicColors) },
-                        isLastItem = true,
                     )
                 }
+                PreferenceSwitch(
+                    title = stringResource(id = R.string.show_cloud_tab),
+                    description = stringResource(id = R.string.show_cloud_tab_description),
+                    icon = NextIcons.Cloud,
+                    isChecked = uiState.preferences.shouldShowCloudTab,
+                    onClick = { onEvent(AppearancePreferencesEvent.ToggleShowCloudTab) },
+                    isLastItem = true,
+                    modifier = Modifier.testTag("appearance_show_cloud_tab"),
+                )
             }
         }
 

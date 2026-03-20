@@ -239,6 +239,7 @@ internal enum class SettingRow(
             R.string.app_language,
             R.string.app_language_description,
             R.string.material_you_controls,
+            R.string.show_cloud_tab,
         ),
     ),
     MEDIA_LIBRARY(

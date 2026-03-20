@@ -365,4 +365,6 @@
     <string name="parent_directory">上層目錄</string>
     <string name="retry">重試</string>
     <string name="search_settings">搜尋設定…</string>
+    <string name="show_cloud_tab">顯示雲端分頁</string>
+    <string name="show_cloud_tab_description">在底部導覽列顯示雲端入口</string>
 </resources>
