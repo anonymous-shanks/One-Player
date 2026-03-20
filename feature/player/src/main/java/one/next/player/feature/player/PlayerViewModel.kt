@@ -14,6 +14,7 @@ import one.next.player.core.data.repository.MediaRepository
 import one.next.player.core.data.repository.PreferencesRepository
 import one.next.player.core.domain.GetSortedPlaylistUseCase
 import one.next.player.core.model.LoopMode
+import one.next.player.core.model.PlayerControl
 import one.next.player.core.model.PlayerPreferences
 import one.next.player.core.model.Video
 import one.next.player.core.model.VideoContentScale
@@ -81,6 +82,12 @@ class PlayerViewModel @Inject constructor(
     fun setLoopMode(loopMode: LoopMode) {
         viewModelScope.launch {
             preferencesRepository.updatePlayerPreferences { it.copy(loopMode = loopMode) }
+        }
+    }
+
+    fun updateHiddenPlayerControls(value: Set<PlayerControl>) {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences { it.copy(hiddenPlayerControls = value) }
         }
     }
 

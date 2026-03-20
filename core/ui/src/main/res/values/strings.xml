@@ -265,8 +265,7 @@
     <string name="reset_volume_gesture_sensitivity">Reset volume gesture sensitivity</string>
     <string name="brightness_gesture_sensitivity">Brightness gesture sensitivity</string>
     <string name="reset_brightness_gesture_sensitivity">Reset brightness gesture sensitivity</string>
-    <string name="shuffle_on">Shuffle on</string>
-    <string name="shuffle_off">Shuffle off</string>
+    <string name="shuffle">Shuffle</string>
     <string name="crash_screen_title">Oops</string>
     <string name="crash_screen_subtitle">Looks like %s experienced an unexpected error. Consider sharing the crash logs in a GitHub issue.</string>
     <string name="crash_screen_logs_title">Crash logs:</string>
@@ -376,4 +375,6 @@ Tap + to add a WebDAV or SMB server.</string>
     <string name="take_screenshot">Take screenshot</string>
     <string name="screenshot_saved">Screenshot saved to Pictures/Screenshots</string>
     <string name="screenshot_failed">Failed to save screenshot</string>
+    <string name="customize_player_controls">Customize controls</string>
+    <string name="customize_player_controls_description">Tap checked controls to hide them, then tap customize again to finish</string>
 </resources>

@@ -15,7 +15,13 @@ import one.next.player.core.ui.R as coreUiR
 
 @OptIn(UnstableApi::class)
 @Composable
-fun PlayPauseButton(player: Player, modifier: Modifier = Modifier) {
+fun PlayPauseButton(
+    player: Player,
+    modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
+    label: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
     val state = rememberPlayPauseButtonState(player)
     val icon = when (state.showPlay) {
         true -> painterResource(coreUiR.drawable.ic_play)
@@ -27,9 +33,12 @@ fun PlayPauseButton(player: Player, modifier: Modifier = Modifier) {
     }
 
     PlayerButton(
-        modifier = modifier.size(64.dp),
+        modifier = modifier,
+        buttonSize = 64.dp,
         isEnabled = state.isEnabled,
-        onClick = state::onClick,
+        isSelected = isSelected,
+        label = label,
+        onClick = onClick ?: state::onClick,
     ) {
         Icon(
             painter = icon,

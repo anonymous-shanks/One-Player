@@ -251,8 +251,7 @@
     <string name="crash_screen_share">分享崩溃日志</string>
     <string name="crash_screen_restart">重启应用</string>
     <string name="crash_screen_logcat">日志：</string>
-    <string name="shuffle_on">已开启随机播放</string>
-    <string name="shuffle_off">已关闭随机播放</string>
+    <string name="shuffle">随机播放</string>
     <string name="reset_seek_increment">重置跳转增量</string>
     <string name="reset_controller_timeout">重置控制器超时</string>
     <string name="pan_gesture">平移手势</string>
@@ -372,4 +371,6 @@
     <string name="take_screenshot">截图</string>
     <string name="screenshot_saved">截图已保存到 Pictures/Screenshots</string>
     <string name="screenshot_failed">截图保存失败</string>
+    <string name="customize_player_controls">自定义控件</string>
+    <string name="customize_player_controls_description">点击带勾的控件即可隐藏，再点一次自定义完成设置</string>
 </resources>

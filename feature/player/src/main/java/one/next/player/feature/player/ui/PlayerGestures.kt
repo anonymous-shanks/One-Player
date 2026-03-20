@@ -26,12 +26,14 @@ fun PlayerGestures(
     seekGestureState: SeekGestureState,
     videoZoomAndContentScaleState: VideoZoomAndContentScaleState,
     volumeAndBrightnessGestureState: VolumeAndBrightnessGestureState,
+    isEnabled: Boolean = true,
 ) {
     BoxWithConstraints {
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .pointerInput(pictureInPictureState.isInPictureInPictureMode) {
+                .pointerInput(isEnabled, pictureInPictureState.isInPictureInPictureMode) {
+                    if (!isEnabled) return@pointerInput
                     if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
 
                     detectTapGestures(
@@ -54,10 +56,12 @@ fun PlayerGestures(
                     )
                 }
                 .pointerInput(
+                    isEnabled,
                     controlsVisibilityState.isControlsLocked,
                     pictureInPictureState.isInPictureInPictureMode,
                     tapGestureState.isLongPressGestureInAction,
                 ) {
+                    if (!isEnabled) return@pointerInput
                     if (controlsVisibilityState.isControlsLocked) return@pointerInput
                     if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
                     if (tapGestureState.isLongPressGestureInAction) return@pointerInput
@@ -70,10 +74,12 @@ fun PlayerGestures(
                     )
                 }
                 .pointerInput(
+                    isEnabled,
                     controlsVisibilityState.isControlsLocked,
                     pictureInPictureState.isInPictureInPictureMode,
                     tapGestureState.isLongPressGestureInAction,
                 ) {
+                    if (!isEnabled) return@pointerInput
                     if (controlsVisibilityState.isControlsLocked) return@pointerInput
                     if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
                     if (tapGestureState.isLongPressGestureInAction) return@pointerInput
@@ -86,9 +92,11 @@ fun PlayerGestures(
                     )
                 }
                 .pointerInput(
+                    isEnabled,
                     controlsVisibilityState.isControlsLocked,
                     pictureInPictureState.isInPictureInPictureMode,
                 ) {
+                    if (!isEnabled) return@pointerInput
                     if (controlsVisibilityState.isControlsLocked) return@pointerInput
                     if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
 

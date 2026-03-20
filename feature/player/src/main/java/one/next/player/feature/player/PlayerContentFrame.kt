@@ -39,6 +39,7 @@ fun PlayerContentFrame(
     videoZoomAndContentScaleState: VideoZoomAndContentScaleState,
     volumeAndBrightnessGestureState: VolumeAndBrightnessGestureState,
     subtitleConfiguration: SubtitleConfiguration,
+    isGesturesEnabled: Boolean = true,
 ) {
     val presentationState = rememberPresentationState(player)
     val density = LocalDensity.current
@@ -95,6 +96,7 @@ fun PlayerContentFrame(
         seekGestureState = seekGestureState,
         videoZoomAndContentScaleState = videoZoomAndContentScaleState,
         volumeAndBrightnessGestureState = volumeAndBrightnessGestureState,
+        isEnabled = isGesturesEnabled,
     )
 
     if (!presentationState.coverSurface) {

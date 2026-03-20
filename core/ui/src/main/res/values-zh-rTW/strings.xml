@@ -247,8 +247,7 @@
     <string name="reset_seek_increment">重設跳轉增量</string>
     <string name="reset_controller_timeout">重設控制器逾時</string>
     <string name="reset_default_playback_speed">重設播放速度</string>
-    <string name="shuffle_on">啟用隨機播放</string>
-    <string name="shuffle_off">停用隨機播放</string>
+    <string name="shuffle">隨機播放</string>
     <string name="crash_screen_title">糟糕</string>
     <string name="crash_screen_subtitle">%s 可能發生無法預期的錯誤。\n請試著前往 GitHub 張貼問題並分享錯誤報告。</string>
     <string name="crash_screen_logs_title">錯誤報告：</string>
@@ -370,4 +369,6 @@
     <string name="take_screenshot">截圖</string>
     <string name="screenshot_saved">截圖已儲存到 Pictures/Screenshots</string>
     <string name="screenshot_failed">截圖儲存失敗</string>
+    <string name="customize_player_controls">自訂控制項</string>
+    <string name="customize_player_controls_description">點擊帶勾的控制項即可隱藏，再點一次自訂完成設定</string>
 </resources>

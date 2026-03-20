@@ -139,6 +139,7 @@ class PlayerActivity : AppCompatActivity() {
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             var player by remember { mutableStateOf<MediaController?>(null) }
+            var isTakingScreenshot by remember { mutableStateOf(false) }
 
             LifecycleStartEffect(
                 uiState.shouldPreventScreenshots,
@@ -197,19 +198,26 @@ class PlayerActivity : AppCompatActivity() {
                             shouldPlayInBackground = true
                             finish()
                         },
-                        onScreenshotClick = {
+                        isTakingScreenshot = isTakingScreenshot,
+                        onScreenshotClick = screenshotClick@{
+                            if (isTakingScreenshot) return@screenshotClick
                             lifecycleScope.launch {
-                                val messageResId = runCatching {
-                                    if (saveCurrentFrameScreenshot()) {
-                                        one.next.player.core.ui.R.string.screenshot_saved
-                                    } else {
+                                isTakingScreenshot = true
+                                try {
+                                    val messageResId = runCatching {
+                                        if (saveCurrentFrameScreenshot()) {
+                                            one.next.player.core.ui.R.string.screenshot_saved
+                                        } else {
+                                            one.next.player.core.ui.R.string.screenshot_failed
+                                        }
+                                    }.getOrElse {
+                                        Logger.error(TAG, "Failed to take screenshot", it)
                                         one.next.player.core.ui.R.string.screenshot_failed
                                     }
-                                }.getOrElse {
-                                    Logger.error(TAG, "Failed to take screenshot", it)
-                                    one.next.player.core.ui.R.string.screenshot_failed
+                                    Toast.makeText(this@PlayerActivity, messageResId, Toast.LENGTH_SHORT).show()
+                                } finally {
+                                    isTakingScreenshot = false
                                 }
-                                Toast.makeText(this@PlayerActivity, messageResId, Toast.LENGTH_SHORT).show()
                             }
                         },
                     )

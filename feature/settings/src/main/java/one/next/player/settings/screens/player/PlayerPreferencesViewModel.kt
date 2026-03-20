@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import one.next.player.core.common.extensions.round
 import one.next.player.core.data.repository.PreferencesRepository
 import one.next.player.core.model.ControlButtonsPosition
+import one.next.player.core.model.PlayerControl
 import one.next.player.core.model.PlayerPreferences
 import one.next.player.core.model.Resume
 import one.next.player.core.model.ScreenOrientation
@@ -49,6 +50,7 @@ class PlayerPreferencesViewModel @Inject constructor(
             is PlayerPreferencesUiEvent.UpdateDefaultPlaybackSpeed -> updateDefaultPlaybackSpeed(event.value)
             is PlayerPreferencesUiEvent.UpdateControlAutoHideTimeout -> updateControlAutoHideTimeout(event.value)
             PlayerPreferencesUiEvent.ToggleUseMaterialYouControls -> toggleUseMaterialYouControls()
+            is PlayerPreferencesUiEvent.UpdateHiddenPlayerControls -> updateHiddenPlayerControls(event.value)
         }
     }
 
@@ -139,6 +141,14 @@ class PlayerPreferencesViewModel @Inject constructor(
             }
         }
     }
+
+    private fun updateHiddenPlayerControls(value: Set<PlayerControl>) {
+        viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences {
+                it.copy(hiddenPlayerControls = value)
+            }
+        }
+    }
 }
 
 @Stable
@@ -165,4 +175,5 @@ sealed interface PlayerPreferencesUiEvent {
     data class UpdateDefaultPlaybackSpeed(val value: Float) : PlayerPreferencesUiEvent
     data class UpdateControlAutoHideTimeout(val value: Int) : PlayerPreferencesUiEvent
     data object ToggleUseMaterialYouControls : PlayerPreferencesUiEvent
+    data class UpdateHiddenPlayerControls(val value: Set<PlayerControl>) : PlayerPreferencesUiEvent
 }

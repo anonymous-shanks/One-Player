@@ -36,6 +36,7 @@ data class PlayerPreferences(
     // 播放器界面
     val controllerAutoHideTimeout: Int = DEFAULT_CONTROLLER_AUTO_HIDE_TIMEOUT,
     val controlButtonsPosition: ControlButtonsPosition = ControlButtonsPosition.LEFT,
+    val hiddenPlayerControls: Set<PlayerControl> = emptySet(),
     val shouldHidePlayerButtonsBackground: Boolean = false,
     val shouldUseMaterialYouControls: Boolean = false,
 
@@ -69,4 +70,25 @@ data class PlayerPreferences(
         const val DEFAULT_SUBTITLE_TEXT_SIZE = 20
         const val DEFAULT_CONTROLLER_AUTO_HIDE_TIMEOUT = 4
     }
+}
+
+@Serializable
+@Suppress("MagicNumber")
+enum class PlayerControl {
+    BACK,
+    PLAYLIST,
+    PLAYBACK_SPEED,
+    AUDIO,
+    SUBTITLE,
+    PREVIOUS,
+    PLAY_PAUSE,
+    NEXT,
+    LOCK,
+    SCALE,
+    PIP,
+    SCREENSHOT,
+    BACKGROUND_PLAY,
+    LOOP,
+    SHUFFLE,
+    ROTATE,
 }

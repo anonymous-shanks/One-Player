@@ -15,16 +15,28 @@ import one.next.player.feature.player.LocalControlsVisibilityState
 
 @OptIn(UnstableApi::class)
 @Composable
-fun LoopButton(player: Player, modifier: Modifier = Modifier) {
+fun LoopButton(
+    player: Player,
+    modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
+    label: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
     val state = rememberRepeatButtonState(player)
     val controlsVisibilityState = LocalControlsVisibilityState.current
 
     PlayerButton(
         modifier = modifier,
         isEnabled = state.isEnabled,
+        isSelected = isSelected,
+        label = label,
         onClick = {
-            state.onClick()
-            controlsVisibilityState?.showControls()
+            if (onClick != null) {
+                onClick()
+            } else {
+                state.onClick()
+                controlsVisibilityState?.showControls()
+            }
         },
     ) {
         Icon(

@@ -16,16 +16,29 @@ import one.next.player.feature.player.LocalControlsVisibilityState
 
 @OptIn(UnstableApi::class)
 @Composable
-internal fun NextButton(player: Player, modifier: Modifier = Modifier) {
+internal fun NextButton(
+    player: Player,
+    modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
+    label: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
     val state = rememberNextButtonState(player)
     val controlsVisibilityState = LocalControlsVisibilityState.current
 
     PlayerButton(
-        modifier = modifier.size(48.dp),
+        modifier = modifier,
+        buttonSize = 48.dp,
         isEnabled = state.isEnabled,
+        isSelected = isSelected,
+        label = label,
         onClick = {
-            state.onClick()
-            controlsVisibilityState?.showControls()
+            if (onClick != null) {
+                onClick()
+            } else {
+                state.onClick()
+                controlsVisibilityState?.showControls()
+            }
         },
     ) {
         Icon(

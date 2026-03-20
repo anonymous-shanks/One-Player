@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
@@ -48,6 +51,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
@@ -55,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import kotlin.time.Duration.Companion.milliseconds
+import one.next.player.core.model.PlayerControl
 import one.next.player.core.model.VideoContentScale
 import one.next.player.core.ui.R
 import one.next.player.core.ui.designsystem.NextIcons
@@ -85,13 +90,22 @@ fun ControlsBottomView(
     onPictureInPictureClick: () -> Unit,
     onRotateClick: () -> Unit,
     onPlayInBackgroundClick: () -> Unit,
+    isTakingScreenshot: Boolean,
     onScreenshotClick: () -> Unit,
+    onCustomizeControlsClick: () -> Unit,
+    onLoopClick: (() -> Unit)? = null,
+    onShuffleClick: (() -> Unit)? = null,
+    isCustomizingControls: Boolean,
+    visiblePlayerControls: Set<PlayerControl>,
     onSeek: (Long) -> Unit,
     onSeekEnd: () -> Unit,
 ) {
     val systemBarsPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout).asPaddingValues()
     val displayedPosition = pendingSeekPosition ?: mediaPresentationState.position
     val displayedPendingPosition = (mediaPresentationState.duration - displayedPosition).coerceAtLeast(0L)
+
+    fun isVisible(control: PlayerControl): Boolean = isCustomizingControls || control in visiblePlayerControls
+    fun isSelected(control: PlayerControl): Boolean = isCustomizingControls && control in visiblePlayerControls
     Column(
         modifier = modifier
             .padding(systemBarsPadding.copy(top = 0.dp))
@@ -133,67 +147,141 @@ fun ControlsBottomView(
             }
 
             Spacer(modifier = Modifier.weight(1f))
-            PlayerButton(
-                modifier = modifier.size(30.dp),
-                onClick = onRotateClick,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_screen_rotation),
-                    contentDescription = "btn_rotate",
-                    modifier = Modifier.size(12.dp),
-                )
+            if (isVisible(PlayerControl.ROTATE)) {
+                PlayerButton(
+                    buttonSize = 30.dp,
+                    onClick = onRotateClick,
+                    isSelected = isSelected(PlayerControl.ROTATE),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_screen_rotation),
+                        contentDescription = "btn_rotate",
+                        modifier = Modifier.size(12.dp),
+                    )
+                }
             }
         }
         PlayerSeekbar(
             position = displayedPosition.toFloat(),
             duration = mediaPresentationState.duration.toFloat(),
+            isEnabled = !isCustomizingControls,
             onSeek = { onSeek(it.toLong()) },
             onSeekFinished = { onSeekEnd() },
         )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(
+                    when (isCustomizingControls) {
+                        true -> Modifier.heightIn(min = 72.dp)
+                        false -> Modifier
+                    },
+                )
                 .horizontalScroll(rememberScrollState()),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = when (isCustomizingControls) {
+                true -> Alignment.Top
+                false -> Alignment.CenterVertically
+            },
             horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = controlsAlignment),
         ) {
-            PlayerButton(onClick = onLockControlsClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_lock_open),
-                    contentDescription = "btn_lock",
-                )
-            }
             PlayerButton(
-                onClick = onVideoContentScaleClick,
-                onLongClick = onVideoContentScaleLongClick,
+                onClick = onCustomizeControlsClick,
+                isSelected = false,
+                label = stringResource(R.string.customize_player_controls).takeIf { isCustomizingControls },
+                shouldShowSelectionBadge = false,
             ) {
                 Icon(
-                    painter = painterResource(videoContentScale.drawableRes()),
-                    contentDescription = "btn_scale",
+                    imageVector = NextIcons.Settings,
+                    contentDescription = "btn_customize_controls",
                 )
             }
-            if (isPipSupported) {
-                PlayerButton(onClick = onPictureInPictureClick) {
+            if (isVisible(PlayerControl.LOCK)) {
+                PlayerButton(
+                    onClick = onLockControlsClick,
+                    isSelected = isSelected(PlayerControl.LOCK),
+                    label = stringResource(R.string.controls_lock).takeIf { isCustomizingControls },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_lock_open),
+                        contentDescription = "btn_lock",
+                    )
+                }
+            }
+            if (isVisible(PlayerControl.SCALE)) {
+                PlayerButton(
+                    onClick = onVideoContentScaleClick,
+                    onLongClick = onVideoContentScaleLongClick,
+                    isSelected = isSelected(PlayerControl.SCALE),
+                    label = stringResource(R.string.video_zoom).takeIf { isCustomizingControls },
+                ) {
+                    Icon(
+                        painter = painterResource(videoContentScale.drawableRes()),
+                        contentDescription = "btn_scale",
+                    )
+                }
+            }
+            if (isPipSupported && isVisible(PlayerControl.PIP)) {
+                PlayerButton(
+                    onClick = onPictureInPictureClick,
+                    isSelected = isSelected(PlayerControl.PIP),
+                    label = stringResource(R.string.pip_settings).takeIf { isCustomizingControls },
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_pip),
                         contentDescription = "btn_pip",
                     )
                 }
             }
-            PlayerButton(onClick = onScreenshotClick) {
-                Icon(
-                    imageVector = NextIcons.Image,
-                    contentDescription = "btn_screenshot",
+            if (isVisible(PlayerControl.SCREENSHOT)) {
+                PlayerButton(
+                    onClick = onScreenshotClick,
+                    isSelected = isSelected(PlayerControl.SCREENSHOT),
+                    isEnabled = !isTakingScreenshot,
+                    modifier = Modifier.alpha(if (isTakingScreenshot) 0.5f else 1f),
+                    label = stringResource(R.string.take_screenshot).takeIf { isCustomizingControls },
+                ) {
+                    if (isTakingScreenshot) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = NextIcons.Image,
+                            contentDescription = "btn_screenshot",
+                        )
+                    }
+                }
+            }
+            if (isVisible(PlayerControl.BACKGROUND_PLAY)) {
+                PlayerButton(
+                    onClick = onPlayInBackgroundClick,
+                    isSelected = isSelected(PlayerControl.BACKGROUND_PLAY),
+                    label = stringResource(R.string.background_play).takeIf { isCustomizingControls },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_headset),
+                        contentDescription = "btn_background",
+                    )
+                }
+            }
+            if (isVisible(PlayerControl.LOOP)) {
+                LoopButton(
+                    player = player,
+                    isSelected = isSelected(PlayerControl.LOOP),
+                    label = stringResource(R.string.loop_mode).takeIf { isCustomizingControls },
+                    onClick = onLoopClick,
                 )
             }
-            PlayerButton(onClick = onPlayInBackgroundClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_headset),
-                    contentDescription = "btn_background",
+            if (isVisible(PlayerControl.SHUFFLE)) {
+                ShuffleButton(
+                    player = player,
+                    isSelected = isSelected(PlayerControl.SHUFFLE),
+                    label = stringResource(R.string.shuffle).takeIf { isCustomizingControls },
+                    onClick = onShuffleClick,
                 )
             }
-            LoopButton(player = player)
-            ShuffleButton(player = player)
         }
     }
 }
@@ -204,6 +292,7 @@ private fun PlayerSeekbar(
     modifier: Modifier = Modifier,
     position: Float,
     duration: Float,
+    isEnabled: Boolean,
     onSeek: (Float) -> Unit,
     onSeekFinished: () -> Unit,
 ) {
@@ -213,6 +302,7 @@ private fun PlayerSeekbar(
                 modifier = modifier.fillMaxWidth(),
                 value = position,
                 valueRange = 0f..duration,
+                isEnabled = isEnabled,
                 onValueChange = onSeek,
                 onValueChangeFinished = onSeekFinished,
             )
@@ -234,6 +324,7 @@ private fun MaterialYouSlider(
     modifier: Modifier = Modifier,
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
+    isEnabled: Boolean,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
 ) {
@@ -246,6 +337,7 @@ private fun MaterialYouSlider(
     Slider(
         value = value,
         valueRange = valueRange,
+        enabled = isEnabled,
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
         interactionSource = interactionSource,
@@ -353,7 +445,8 @@ private fun SimpleSlider(
         modifier = modifier.height(20.dp).semantics { contentDescription = "slider_seek" },
         thumb = {
             Box(
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier
+                    .size(16.dp)
                     .shadow(4.dp, CircleShape)
                     .background(Color.White),
             )

@@ -37,6 +37,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +55,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import kotlin.time.Duration.Companion.seconds
 import one.next.player.core.model.ControlButtonsPosition
+import one.next.player.core.model.PlayerControl
 import one.next.player.core.model.PlayerPreferences
 import one.next.player.core.ui.R as coreUiR
 import one.next.player.core.ui.extensions.copy
@@ -98,6 +100,7 @@ fun MediaPlayerScreen(
     onSelectSubtitleClick: () -> Unit,
     onBackClick: () -> Unit,
     onPlayInBackgroundClick: () -> Unit,
+    isTakingScreenshot: Boolean = false,
     onScreenshotClick: () -> Unit,
 ) {
     val volumeState = rememberVolumeState(
@@ -181,6 +184,51 @@ fun MediaPlayerScreen(
     }
 
     var overlayView by remember { mutableStateOf<OverlayView?>(null) }
+    var isCustomizingControls by remember { mutableStateOf(false) }
+    var customizingHiddenPlayerControls by remember { mutableStateOf(playerPreferences.hiddenPlayerControls) }
+    val scope = rememberCoroutineScope()
+    val hiddenPlayerControls = when (isCustomizingControls) {
+        true -> customizingHiddenPlayerControls
+        false -> playerPreferences.hiddenPlayerControls
+    }
+
+    LaunchedEffect(playerPreferences.hiddenPlayerControls, isCustomizingControls) {
+        if (!isCustomizingControls) {
+            customizingHiddenPlayerControls = playerPreferences.hiddenPlayerControls
+        }
+    }
+
+    fun isControlVisible(control: PlayerControl): Boolean = isCustomizingControls || control !in hiddenPlayerControls
+
+    fun isControlSelected(control: PlayerControl): Boolean = isCustomizingControls && control !in hiddenPlayerControls
+
+    fun toggleControlVisibility(control: PlayerControl) {
+        val currentHiddenPlayerControls = when (isCustomizingControls) {
+            true -> customizingHiddenPlayerControls
+            false -> playerPreferences.hiddenPlayerControls
+        }
+        val updatedControls = currentHiddenPlayerControls.toMutableSet().apply {
+            if (!add(control)) remove(control)
+        }
+        if (isCustomizingControls) {
+            customizingHiddenPlayerControls = updatedControls
+            controlsVisibilityState.showControls(duration = kotlin.time.Duration.INFINITE)
+        } else {
+            controlsVisibilityState.showControls()
+        }
+        viewModel.updateHiddenPlayerControls(updatedControls)
+    }
+
+    fun enterControlCustomization() {
+        player.pause()
+        isCustomizingControls = true
+        controlsVisibilityState.showControls(duration = kotlin.time.Duration.INFINITE)
+    }
+
+    fun exitControlCustomization() {
+        isCustomizingControls = false
+        controlsVisibilityState.showControls()
+    }
 
     CompositionLocalProvider(LocalControlsVisibilityState provides controlsVisibilityState) {
         Box {
@@ -197,6 +245,7 @@ fun MediaPlayerScreen(
                     seekGestureState = seekGestureState,
                     videoZoomAndContentScaleState = videoZoomAndContentScaleState,
                     volumeAndBrightnessGestureState = volumeAndBrightnessGestureState,
+                    isGesturesEnabled = !isCustomizingControls,
                     subtitleConfiguration = SubtitleConfiguration(
                         shouldUseSystemCaptionStyle = playerPreferences.shouldUseSystemCaptionStyle,
                         shouldShowBackground = playerPreferences.shouldShowSubtitleBackground,
@@ -215,7 +264,14 @@ fun MediaPlayerScreen(
                     Box(
                         modifier = modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.3f)),
+                            .background(
+                                Color.Black.copy(
+                                    alpha = when (isCustomizingControls) {
+                                        true -> 0.5f
+                                        false -> 0.3f
+                                    },
+                                ),
+                            ),
                     )
                 }
 
@@ -224,6 +280,16 @@ fun MediaPlayerScreen(
                         modifier = Modifier
                             .align(Alignment.Center)
                             .size(72.dp),
+                    )
+                }
+
+                if (isCustomizingControls) {
+                    InfoView(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 96.dp),
+                        info = stringResource(coreUiR.string.customize_player_controls_description),
+                        textStyle = MaterialTheme.typography.titleMedium,
                     )
                 }
 
@@ -276,23 +342,56 @@ fun MediaPlayerScreen(
                             ) {
                                 ControlsTopView(
                                     title = metadataState.title ?: "",
+                                    isCustomizingControls = isCustomizingControls,
+                                    isBackVisible = isControlVisible(PlayerControl.BACK),
+                                    isBackSelected = isControlSelected(PlayerControl.BACK),
+                                    isPlaylistVisible = isControlVisible(PlayerControl.PLAYLIST),
+                                    isPlaylistSelected = isControlSelected(PlayerControl.PLAYLIST),
+                                    isPlaybackSpeedVisible = isControlVisible(PlayerControl.PLAYBACK_SPEED),
+                                    isPlaybackSpeedSelected = isControlSelected(PlayerControl.PLAYBACK_SPEED),
+                                    isAudioVisible = isControlVisible(PlayerControl.AUDIO),
+                                    isAudioSelected = isControlSelected(PlayerControl.AUDIO),
+                                    isSubtitleVisible = isControlVisible(PlayerControl.SUBTITLE),
+                                    isSubtitleSelected = isControlSelected(PlayerControl.SUBTITLE),
                                     onAudioClick = {
-                                        controlsVisibilityState.hideControls()
-                                        overlayView = OverlayView.AUDIO_SELECTOR
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.AUDIO)
+                                        } else {
+                                            controlsVisibilityState.hideControls()
+                                            overlayView = OverlayView.AUDIO_SELECTOR
+                                        }
                                     },
                                     onSubtitleClick = {
-                                        controlsVisibilityState.hideControls()
-                                        overlayView = OverlayView.SUBTITLE_SELECTOR
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.SUBTITLE)
+                                        } else {
+                                            controlsVisibilityState.hideControls()
+                                            overlayView = OverlayView.SUBTITLE_SELECTOR
+                                        }
                                     },
                                     onPlaybackSpeedClick = {
-                                        controlsVisibilityState.hideControls()
-                                        overlayView = OverlayView.PLAYBACK_SPEED
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.PLAYBACK_SPEED)
+                                        } else {
+                                            controlsVisibilityState.hideControls()
+                                            overlayView = OverlayView.PLAYBACK_SPEED
+                                        }
                                     },
                                     onPlaylistClick = {
-                                        controlsVisibilityState.hideControls()
-                                        overlayView = OverlayView.PLAYLIST
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.PLAYLIST)
+                                        } else {
+                                            controlsVisibilityState.hideControls()
+                                            overlayView = OverlayView.PLAYLIST
+                                        }
                                     },
-                                    onBackClick = onBackClick,
+                                    onBackClick = {
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.BACK)
+                                        } else {
+                                            onBackClick()
+                                        }
+                                    },
                                 )
                             }
                         },
@@ -301,7 +400,19 @@ fun MediaPlayerScreen(
                                 seekGestureState.seekAmount != null -> InfoView(info = "${seekGestureState.seekAmountFormatted}\n[${seekGestureState.seekToPositionFormated}]")
                                 videoZoomAndContentScaleState.isZooming -> InfoView(info = "${(videoZoomAndContentScaleState.zoom * 100).toInt()}%")
                                 videoZoomAndContentScaleState.shouldShowContentScaleIndicator -> InfoView(info = stringResource(videoZoomAndContentScaleState.videoContentScale.nameRes()))
-                                controlsVisibilityState.isControlsVisible -> ControlsMiddleView(player = player)
+                                controlsVisibilityState.isControlsVisible -> ControlsMiddleView(
+                                    player = player,
+                                    isCustomizingControls = isCustomizingControls,
+                                    isPreviousVisible = isControlVisible(PlayerControl.PREVIOUS),
+                                    isPreviousSelected = isControlSelected(PlayerControl.PREVIOUS),
+                                    isPlayPauseVisible = isControlVisible(PlayerControl.PLAY_PAUSE),
+                                    isPlayPauseSelected = isControlSelected(PlayerControl.PLAY_PAUSE),
+                                    isNextVisible = isControlVisible(PlayerControl.NEXT),
+                                    isNextSelected = isControlSelected(PlayerControl.NEXT),
+                                    onPreviousClick = { toggleControlVisibility(PlayerControl.PREVIOUS) },
+                                    onPlayPauseClick = { toggleControlVisibility(PlayerControl.PLAY_PAUSE) },
+                                    onNextClick = { toggleControlVisibility(PlayerControl.NEXT) },
+                                )
                                 else -> Unit
                             }
                         },
@@ -322,25 +433,71 @@ fun MediaPlayerScreen(
                                     videoContentScale = videoZoomAndContentScaleState.videoContentScale,
                                     isPipSupported = pictureInPictureState.isPipSupported,
                                     pendingSeekPosition = seekGestureState.pendingSeekPosition,
+                                    isCustomizingControls = isCustomizingControls,
+                                    visiblePlayerControls = PlayerControl.entries.toSet() - hiddenPlayerControls,
                                     onSeek = seekGestureState::onSeek,
                                     onSeekEnd = seekGestureState::onSeekEnd,
-                                    onRotateClick = rotationState::rotate,
-                                    onPlayInBackgroundClick = onPlayInBackgroundClick,
-                                    onScreenshotClick = onScreenshotClick,
+                                    onRotateClick = {
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.ROTATE)
+                                        } else {
+                                            rotationState.rotate()
+                                        }
+                                    },
+                                    onPlayInBackgroundClick = {
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.BACKGROUND_PLAY)
+                                        } else {
+                                            onPlayInBackgroundClick()
+                                        }
+                                    },
+                                    isTakingScreenshot = isTakingScreenshot,
+                                    onScreenshotClick = {
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.SCREENSHOT)
+                                        } else {
+                                            onScreenshotClick()
+                                        }
+                                    },
+                                    onCustomizeControlsClick = {
+                                        if (isCustomizingControls) {
+                                            exitControlCustomization()
+                                        } else {
+                                            enterControlCustomization()
+                                        }
+                                    },
+                                    onLoopClick = {
+                                        toggleControlVisibility(PlayerControl.LOOP)
+                                    }.takeIf { isCustomizingControls },
+                                    onShuffleClick = {
+                                        toggleControlVisibility(PlayerControl.SHUFFLE)
+                                    }.takeIf { isCustomizingControls },
                                     onLockControlsClick = {
-                                        controlsVisibilityState.showControls()
-                                        controlsVisibilityState.lockControls()
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.LOCK)
+                                        } else {
+                                            controlsVisibilityState.showControls()
+                                            controlsVisibilityState.lockControls()
+                                        }
                                     },
                                     onVideoContentScaleClick = {
-                                        controlsVisibilityState.showControls()
-                                        videoZoomAndContentScaleState.switchToNextVideoContentScale()
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.SCALE)
+                                        } else {
+                                            controlsVisibilityState.showControls()
+                                            videoZoomAndContentScaleState.switchToNextVideoContentScale()
+                                        }
                                     },
                                     onVideoContentScaleLongClick = {
-                                        controlsVisibilityState.hideControls()
-                                        overlayView = OverlayView.VIDEO_CONTENT_SCALE
+                                        if (!isCustomizingControls) {
+                                            controlsVisibilityState.hideControls()
+                                            overlayView = OverlayView.VIDEO_CONTENT_SCALE
+                                        }
                                     },
                                     onPictureInPictureClick = {
-                                        if (!pictureInPictureState.hasPipPermission) {
+                                        if (isCustomizingControls) {
+                                            toggleControlVisibility(PlayerControl.PIP)
+                                        } else if (!pictureInPictureState.hasPipPermission) {
                                             Toast.makeText(context, coreUiR.string.enable_pip_from_settings, Toast.LENGTH_SHORT).show()
                                             pictureInPictureState.openPictureInPictureSettings()
                                         } else {
@@ -465,15 +622,61 @@ fun InfoView(
 }
 
 @Composable
-fun ControlsMiddleView(modifier: Modifier = Modifier, player: Player) {
+fun ControlsMiddleView(
+    modifier: Modifier = Modifier,
+    player: Player,
+    isCustomizingControls: Boolean = false,
+    isPreviousVisible: Boolean = true,
+    isPreviousSelected: Boolean = false,
+    isPlayPauseVisible: Boolean = true,
+    isPlayPauseSelected: Boolean = false,
+    isNextVisible: Boolean = true,
+    isNextSelected: Boolean = false,
+    onPreviousClick: () -> Unit = {},
+    onPlayPauseClick: () -> Unit = {},
+    onNextClick: () -> Unit = {},
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(40.dp, alignment = Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PreviousButton(player = player)
-        PlayPauseButton(player = player)
-        NextButton(player = player)
+        if (isPreviousVisible) {
+            if (isCustomizingControls) {
+                PreviousButton(
+                    player = player,
+                    onClick = onPreviousClick,
+                    isSelected = isPreviousSelected,
+                    label = stringResource(coreUiR.string.player_controls_previous),
+                )
+            } else {
+                PreviousButton(player = player)
+            }
+        }
+        if (isPlayPauseVisible) {
+            if (isCustomizingControls) {
+                PlayPauseButton(
+                    player = player,
+                    onClick = onPlayPauseClick,
+                    isSelected = isPlayPauseSelected,
+                    label = stringResource(coreUiR.string.play_pause),
+                )
+            } else {
+                PlayPauseButton(player = player)
+            }
+        }
+        if (isNextVisible) {
+            if (isCustomizingControls) {
+                NextButton(
+                    player = player,
+                    onClick = onNextClick,
+                    isSelected = isNextSelected,
+                    label = stringResource(coreUiR.string.player_controls_next),
+                )
+            } else {
+                NextButton(player = player)
+            }
+        }
     }
 }
 
