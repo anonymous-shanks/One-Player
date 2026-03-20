@@ -88,6 +88,7 @@ import one.next.player.core.common.Logger
 import one.next.player.core.common.extensions.deleteFiles
 import one.next.player.core.common.extensions.getFilenameFromUri
 import one.next.player.core.common.extensions.getLocalSubtitles
+import one.next.player.core.common.extensions.matchesSubtitleBase
 import one.next.player.core.common.extensions.getPath
 import one.next.player.core.common.extensions.subtitleCacheDir
 import one.next.player.core.data.remote.SmbClient
@@ -1598,7 +1599,7 @@ class PlayerService : MediaSessionService() {
         return subtitleFiles
             .filter { !it.isDirectory }
             .filter { it.hasSubtitleExtension() }
-            .filter { it.name.substringBeforeLast('.', missingDelimiterValue = it.name).equals(videoName, ignoreCase = true) }
+            .filter { it.name.matchesSubtitleBase(videoName) }
             .map { remoteFile -> buildRemoteSubtitleUri(videoUri, remoteFile) }
             .filter { subtitleUri -> subtitleUri.toString() !in excludedUris }
     }

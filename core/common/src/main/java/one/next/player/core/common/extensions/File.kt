@@ -10,13 +10,13 @@ import kotlinx.coroutines.withContext
 
 suspend fun File.getSubtitles(): List<File> = withContext(Dispatchers.IO) {
     val mediaName = this@getSubtitles.nameWithoutExtension
-    val parentDir = this@getSubtitles.parentFile
-    val subtitleExtensions = listOf("ass", "ssa", "srt", "vtt", "ttml")
+    val parentDir = this@getSubtitles.parentFile ?: return@withContext emptyList()
 
-    subtitleExtensions.mapNotNull { extension ->
-        val file = File(parentDir, "$mediaName.$extension")
-        file.takeIf { it.exists() && it.isFile }
-    }
+    parentDir.listFiles()
+        ?.filter { it.isFile }
+        ?.filter { it.isSubtitle() }
+        ?.filter { it.name.matchesSubtitleBase(mediaName) }
+        .orEmpty()
 }
 
 suspend fun File.getLocalSubtitles(
@@ -47,6 +47,11 @@ fun String.getThumbnail(): File? {
 fun File.isSubtitle(): Boolean {
     val subtitleExtensions = listOf("srt", "ssa", "ass", "vtt", "ttml")
     return extension.lowercase() in subtitleExtensions
+}
+
+fun String.matchesSubtitleBase(videoName: String): Boolean {
+    val subtitleBase = substringBeforeLast('.', missingDelimiterValue = this)
+    return subtitleBase == videoName || subtitleBase.startsWith("$videoName.", ignoreCase = true)
 }
 
 fun File.deleteFiles() {
