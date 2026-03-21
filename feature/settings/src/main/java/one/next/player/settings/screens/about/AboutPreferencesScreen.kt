@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -128,6 +129,11 @@ fun AboutPreferencesScreen(
                 )
             }
         }
+
+        StartupUpdateDialog(
+            uiState = uiState,
+            onEvent = viewModel::onEvent,
+        )
     }
 }
 
@@ -177,6 +183,41 @@ private fun updateStatusText(state: UpdateState): String = when (state) {
     UpdateState.UpToDate -> stringResource(R.string.update_status_up_to_date)
     is UpdateState.UpdateAvailable -> stringResource(R.string.update_status_available, state.latestVersion)
     UpdateState.Error -> stringResource(R.string.update_status_error)
+}
+
+@Composable
+private fun StartupUpdateDialog(
+    uiState: AboutPreferencesUiState,
+    onEvent: (AboutPreferencesUiEvent) -> Unit,
+) {
+    val state = uiState.updateState as? UpdateState.UpdateAvailable ?: return
+    if (!uiState.shouldShowStartupUpdateDialog) return
+
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+
+    AlertDialog(
+        onDismissRequest = { onEvent(AboutPreferencesUiEvent.DismissStartupUpdateDialog) },
+        title = { Text(text = stringResource(R.string.update_dialog_title)) },
+        text = { Text(text = stringResource(R.string.update_dialog_message, state.latestVersion)) },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onEvent(AboutPreferencesUiEvent.DismissStartupUpdateDialog)
+                    uriHandler.openUriOrShowToast(state.releaseUrl, context)
+                },
+            ) {
+                Text(text = stringResource(R.string.update_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = { onEvent(AboutPreferencesUiEvent.DismissStartupUpdateDialog) },
+            ) {
+                Text(text = stringResource(R.string.not_now))
+            }
+        },
+    )
 }
 
 @Composable

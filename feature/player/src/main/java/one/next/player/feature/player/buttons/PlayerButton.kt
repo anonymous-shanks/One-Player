@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -44,7 +45,10 @@ fun PlayerButton(
     isEnabled: Boolean = true,
     isSelected: Boolean = false,
     label: String? = null,
-    shouldShowSelectionBadge: Boolean = isSelected || label != null,
+    shouldShowSelectionBadge: Boolean = isSelected,
+    shouldDimWhenUnselected: Boolean = label != null,
+    shouldShowCustomizeFrame: Boolean = label != null,
+    isInteractive: Boolean = true,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
@@ -57,6 +61,7 @@ fun PlayerButton(
     LaunchedEffect(interactionSource) {
         var isLongPressClicked = false
         interactionSource.interactions.collectLatest { interaction ->
+            if (!isInteractive) return@collectLatest
             when (interaction) {
                 is PressInteraction.Press -> {
                     isLongPressClicked = false
@@ -138,20 +143,27 @@ fun PlayerButton(
 
     Column(
         modifier = modifier
+            .alpha(if (shouldDimWhenUnselected && !isSelected) 0.5f else 1f)
             .widthIn(min = buttonSize + 16.dp, max = 88.dp)
-            .drawBehind {
-                val strokeWidth = 1.dp.toPx()
-                drawRoundRect(
-                    color = customizeBorderColor,
-                    style = Stroke(
-                        width = strokeWidth,
-                        pathEffect = PathEffect.dashPathEffect(
-                            intervals = floatArrayOf(12f, 12f),
-                        ),
-                    ),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx(), 16.dp.toPx()),
-                )
-            }
+            .then(
+                if (shouldShowCustomizeFrame) {
+                    Modifier.drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawRoundRect(
+                            color = customizeBorderColor,
+                            style = Stroke(
+                                width = strokeWidth,
+                                pathEffect = PathEffect.dashPathEffect(
+                                    intervals = floatArrayOf(12f, 12f),
+                                ),
+                            ),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx(), 16.dp.toPx()),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 6.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),

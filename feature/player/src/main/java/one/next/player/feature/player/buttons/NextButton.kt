@@ -21,6 +21,7 @@ internal fun NextButton(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     label: String? = null,
+    isInteractive: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
     val state = rememberNextButtonState(player)
@@ -32,6 +33,7 @@ internal fun NextButton(
         isEnabled = state.isEnabled,
         isSelected = isSelected,
         label = label,
+        isInteractive = isInteractive,
         onClick = {
             if (onClick != null) {
                 onClick()

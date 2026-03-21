@@ -19,7 +19,7 @@
     <string name="permission_not_granted">未授予权限</string>
     <string name="permission_request">权限请求</string>
     <string name="permission_settings">One Player 应用需要“%1$s”权限以访问和播放媒体。没有它，则无法访问和播放媒体。由于已永久拒绝了此权限，要使用应用的完整功能，请在设置中授予此权限。</string>
-    <string name="player_controls_exit">向上导航</string>
+    <string name="player_controls_exit">返回</string>
     <string name="player_controls_next">下一个</string>
     <string name="player_controls_play_pause">播放/暂停</string>
     <string name="player_description">播放器外观、播放控制</string>
@@ -335,6 +335,9 @@
     <string name="update_status_up_to_date">已是最新版本</string>
     <string name="update_status_available">新版本 %1$s 可用，点按查看</string>
     <string name="update_status_error">检查失败，点按重试</string>
+    <string name="update_dialog_title">发现新版本</string>
+    <string name="update_dialog_message">检测到新版本 %1$s，是否前往查看更新？</string>
+    <string name="update_dialog_confirm">前往查看</string>
     <string name="tab_local">本地</string>
     <string name="tab_cloud">云端</string>
     <string name="tab_settings">设置</string>
@@ -370,5 +373,4 @@
     <string name="screenshot_saved">截图已保存到 Pictures/Screenshots</string>
     <string name="screenshot_failed">截图保存失败</string>
     <string name="customize_player_controls">自定义控件</string>
-    <string name="customize_player_controls_description">点击带勾的控件即可隐藏，再点一次自定义完成设置</string>
 </resources>

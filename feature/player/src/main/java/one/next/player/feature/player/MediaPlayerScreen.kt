@@ -187,6 +187,15 @@ fun MediaPlayerScreen(
     var isCustomizingControls by remember { mutableStateOf(false) }
     var customizingHiddenPlayerControls by remember { mutableStateOf(playerPreferences.hiddenPlayerControls) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val permanentlyVisibleControls = remember {
+        setOf(
+            PlayerControl.BACK,
+            PlayerControl.PREVIOUS,
+            PlayerControl.PLAY_PAUSE,
+            PlayerControl.NEXT,
+        )
+    }
     val hiddenPlayerControls = when (isCustomizingControls) {
         true -> customizingHiddenPlayerControls
         false -> playerPreferences.hiddenPlayerControls
@@ -194,13 +203,13 @@ fun MediaPlayerScreen(
 
     LaunchedEffect(playerPreferences.hiddenPlayerControls, isCustomizingControls) {
         if (!isCustomizingControls) {
-            customizingHiddenPlayerControls = playerPreferences.hiddenPlayerControls
+            customizingHiddenPlayerControls = playerPreferences.hiddenPlayerControls - permanentlyVisibleControls
         }
     }
 
-    fun isControlVisible(control: PlayerControl): Boolean = isCustomizingControls || control !in hiddenPlayerControls
+    fun isControlVisible(control: PlayerControl): Boolean = control in permanentlyVisibleControls || isCustomizingControls || control !in hiddenPlayerControls
 
-    fun isControlSelected(control: PlayerControl): Boolean = isCustomizingControls && control !in hiddenPlayerControls
+    fun isControlSelected(control: PlayerControl): Boolean = isCustomizingControls && control !in permanentlyVisibleControls && control !in hiddenPlayerControls
 
     fun toggleControlVisibility(control: PlayerControl) {
         val currentHiddenPlayerControls = when (isCustomizingControls) {
@@ -221,6 +230,7 @@ fun MediaPlayerScreen(
 
     fun enterControlCustomization() {
         player.pause()
+        customizingHiddenPlayerControls = playerPreferences.hiddenPlayerControls - permanentlyVisibleControls
         isCustomizingControls = true
         controlsVisibilityState.showControls(duration = kotlin.time.Duration.INFINITE)
     }
@@ -267,7 +277,7 @@ fun MediaPlayerScreen(
                             .background(
                                 Color.Black.copy(
                                     alpha = when (isCustomizingControls) {
-                                        true -> 0.5f
+                                        true -> 0.75f
                                         false -> 0.3f
                                     },
                                 ),
@@ -282,17 +292,6 @@ fun MediaPlayerScreen(
                             .size(72.dp),
                     )
                 }
-
-                if (isCustomizingControls) {
-                    InfoView(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 96.dp),
-                        info = stringResource(coreUiR.string.customize_player_controls_description),
-                        textStyle = MaterialTheme.typography.titleMedium,
-                    )
-                }
-
                 DoubleTapIndicator(tapGestureState = tapGestureState)
 
                 AnimatedVisibility(
@@ -345,6 +344,7 @@ fun MediaPlayerScreen(
                                     isCustomizingControls = isCustomizingControls,
                                     isBackVisible = isControlVisible(PlayerControl.BACK),
                                     isBackSelected = isControlSelected(PlayerControl.BACK),
+                                    isBackInteractive = !isCustomizingControls,
                                     isPlaylistVisible = isControlVisible(PlayerControl.PLAYLIST),
                                     isPlaylistSelected = isControlSelected(PlayerControl.PLAYLIST),
                                     isPlaybackSpeedVisible = isControlVisible(PlayerControl.PLAYBACK_SPEED),
@@ -386,9 +386,7 @@ fun MediaPlayerScreen(
                                         }
                                     },
                                     onBackClick = {
-                                        if (isCustomizingControls) {
-                                            toggleControlVisibility(PlayerControl.BACK)
-                                        } else {
+                                        if (!isCustomizingControls) {
                                             onBackClick()
                                         }
                                     },
@@ -409,9 +407,9 @@ fun MediaPlayerScreen(
                                     isPlayPauseSelected = isControlSelected(PlayerControl.PLAY_PAUSE),
                                     isNextVisible = isControlVisible(PlayerControl.NEXT),
                                     isNextSelected = isControlSelected(PlayerControl.NEXT),
-                                    onPreviousClick = { toggleControlVisibility(PlayerControl.PREVIOUS) },
-                                    onPlayPauseClick = { toggleControlVisibility(PlayerControl.PLAY_PAUSE) },
-                                    onNextClick = { toggleControlVisibility(PlayerControl.NEXT) },
+                                    onPreviousClick = { },
+                                    onPlayPauseClick = { },
+                                    onNextClick = { },
                                 )
                                 else -> Unit
                             }
@@ -422,7 +420,6 @@ fun MediaPlayerScreen(
                                 enter = fadeIn(),
                                 exit = fadeOut(),
                             ) {
-                                val context = LocalContext.current
                                 ControlsBottomView(
                                     player = player,
                                     mediaPresentationState = mediaPresentationState,
@@ -595,6 +592,8 @@ fun MediaPlayerScreen(
     BackHandler {
         if (overlayView != null) {
             overlayView = null
+        } else if (isCustomizingControls) {
+            exitControlCustomization()
         } else {
             onBackClick()
         }
@@ -646,8 +645,7 @@ fun ControlsMiddleView(
                 PreviousButton(
                     player = player,
                     onClick = onPreviousClick,
-                    isSelected = isPreviousSelected,
-                    label = stringResource(coreUiR.string.player_controls_previous),
+                    isInteractive = false,
                 )
             } else {
                 PreviousButton(player = player)
@@ -658,8 +656,7 @@ fun ControlsMiddleView(
                 PlayPauseButton(
                     player = player,
                     onClick = onPlayPauseClick,
-                    isSelected = isPlayPauseSelected,
-                    label = stringResource(coreUiR.string.play_pause),
+                    isInteractive = false,
                 )
             } else {
                 PlayPauseButton(player = player)
@@ -670,8 +667,7 @@ fun ControlsMiddleView(
                 NextButton(
                     player = player,
                     onClick = onNextClick,
-                    isSelected = isNextSelected,
-                    label = stringResource(coreUiR.string.player_controls_next),
+                    isInteractive = false,
                 )
             } else {
                 NextButton(player = player)

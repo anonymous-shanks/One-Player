@@ -20,6 +20,7 @@ fun PlayPauseButton(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     label: String? = null,
+    isInteractive: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
     val state = rememberPlayPauseButtonState(player)
@@ -38,6 +39,7 @@ fun PlayPauseButton(
         isEnabled = state.isEnabled,
         isSelected = isSelected,
         label = label,
+        isInteractive = isInteractive,
         onClick = onClick ?: state::onClick,
     ) {
         Icon(

@@ -180,17 +180,6 @@ fun ControlsBottomView(
             },
             horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = controlsAlignment),
         ) {
-            PlayerButton(
-                onClick = onCustomizeControlsClick,
-                isSelected = false,
-                label = stringResource(R.string.customize_player_controls).takeIf { isCustomizingControls },
-                shouldShowSelectionBadge = false,
-            ) {
-                Icon(
-                    imageVector = NextIcons.Settings,
-                    contentDescription = "btn_customize_controls",
-                )
-            }
             if (isVisible(PlayerControl.LOCK)) {
                 PlayerButton(
                     onClick = onLockControlsClick,
@@ -276,6 +265,19 @@ fun ControlsBottomView(
                     isSelected = isSelected(PlayerControl.SHUFFLE),
                     label = stringResource(R.string.shuffle).takeIf { isCustomizingControls },
                     onClick = onShuffleClick,
+                )
+            }
+            PlayerButton(
+                onClick = onCustomizeControlsClick,
+                isSelected = false,
+                label = stringResource(R.string.customize_player_controls).takeIf { isCustomizingControls },
+                shouldShowSelectionBadge = false,
+                shouldDimWhenUnselected = false,
+                shouldShowCustomizeFrame = false,
+            ) {
+                Icon(
+                    imageVector = NextIcons.Edit,
+                    contentDescription = "btn_customize_controls",
                 )
             }
         }

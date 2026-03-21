@@ -27,7 +27,7 @@
     <string name="permission_not_granted">Permission Not Granted</string>
     <string name="permission_request">Permission Request</string>
     <string name="permission_settings">The One Player app needs \"%1$s\" permission to access and play media. Without it, media access and playback won\'t work. To use the app fully, grant the permission from settings since it was permanently denied.</string>
-    <string name="player_controls_exit">Navigate up</string>
+    <string name="player_controls_exit">Back</string>
     <string name="player_controls_next">Player next</string>
     <string name="player_controls_play_pause">Player play pause</string>
     <string name="player_controls_previous">Player previous</string>
@@ -339,6 +339,9 @@
     <string name="update_status_up_to_date">Already up to date</string>
     <string name="update_status_available">New version %1$s available, tap to view</string>
     <string name="update_status_error">Check failed, tap to retry</string>
+    <string name="update_dialog_title">Update available</string>
+    <string name="update_dialog_message">Version %1$s is available. Do you want to view the update now?</string>
+    <string name="update_dialog_confirm">View update</string>
     <string name="tab_local">Local</string>
     <string name="tab_cloud">Cloud</string>
     <string name="tab_settings">Settings</string>
@@ -374,5 +377,4 @@ Tap + to add a WebDAV or SMB server.</string>
     <string name="screenshot_saved">Screenshot saved to Pictures/Screenshots</string>
     <string name="screenshot_failed">Failed to save screenshot</string>
     <string name="customize_player_controls">Customize controls</string>
-    <string name="customize_player_controls_description">Tap checked controls to hide them, then tap customize again to finish</string>
 </resources>

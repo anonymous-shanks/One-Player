@@ -33,6 +33,7 @@ fun ControlsTopView(
     isCustomizingControls: Boolean = false,
     isBackVisible: Boolean = true,
     isBackSelected: Boolean = false,
+    isBackInteractive: Boolean = true,
     isPlaylistVisible: Boolean = true,
     isPlaylistSelected: Boolean = false,
     isPlaybackSpeedVisible: Boolean = true,
@@ -60,7 +61,11 @@ fun ControlsTopView(
             PlayerButton(
                 onClick = onBackClick,
                 isSelected = isBackSelected,
-                label = stringResource(R.string.navigate_up).takeIf { isCustomizingControls },
+                label = stringResource(R.string.player_controls_exit).takeIf { isCustomizingControls },
+                shouldShowSelectionBadge = false,
+                shouldDimWhenUnselected = false,
+                shouldShowCustomizeFrame = false,
+                isInteractive = isBackInteractive,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_arrow_left),
