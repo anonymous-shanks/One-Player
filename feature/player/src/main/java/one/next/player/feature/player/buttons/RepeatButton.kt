@@ -27,7 +27,7 @@ fun LoopButton(
 
     PlayerButton(
         modifier = modifier,
-        isEnabled = state.isEnabled,
+        isEnabled = onClick != null || state.isEnabled,
         isSelected = isSelected,
         label = label,
         onClick = {
