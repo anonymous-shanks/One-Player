@@ -73,3 +73,6 @@ audit/**
 # Local docs
 docs/
 **/docs/
+
+# Local git worktrees
+.worktrees/
