@@ -228,7 +228,7 @@ internal enum class SettingRow(
     val subSettingResIds: List<Int> = emptyList(),
 ) {
     APPEARANCE(
-        titleResId = R.string.appearance_name,
+        titleResId = R.string.appearance_and_general_name,
         descriptionResId = R.string.appearance_description,
         icon = NextIcons.Appearance,
         setting = Setting.APPEARANCE,
@@ -239,6 +239,8 @@ internal enum class SettingRow(
             R.string.app_language,
             R.string.app_language_description,
             R.string.show_cloud_tab,
+            R.string.home_title_long_press_to_root,
+            R.string.home_title_long_press_to_root_description,
         ),
     ),
     MEDIA_LIBRARY(

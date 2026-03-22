@@ -5,6 +5,7 @@
     <string name="about_name">About</string>
     <string name="appearance_description">Adjust the app to your liking</string>
     <string name="appearance_name">Appearance</string>
+    <string name="appearance_and_general_name">Appearance &amp; general</string>
     <string name="ascending">Ascending</string>
     <string name="cancel">Cancel</string>
     <string name="descending">Descending</string>
@@ -384,6 +385,8 @@ Tap + to add a WebDAV or SMB server.</string>
     <string name="search_settings">Search settings…</string>
     <string name="show_cloud_tab">Show cloud tab</string>
     <string name="show_cloud_tab_description">Show cloud in the bottom navigation bar</string>
+    <string name="home_title_long_press_to_root">Long press title to go home</string>
+    <string name="home_title_long_press_to_root_description">Long press the title bar to navigate back to the root folder</string>
     <string name="take_screenshot">Take screenshot</string>
     <string name="screenshot_saved">Screenshot saved to Pictures/Screenshots</string>
     <string name="screenshot_failed">Failed to save screenshot</string>

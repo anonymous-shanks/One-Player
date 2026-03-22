@@ -124,6 +124,16 @@ fun MediaPickerRoute(
     )
 }
 
+internal fun shouldEnableTitleLongPressHomeNavigation(
+    isInSelectionMode: Boolean,
+    folderName: String?,
+    shouldNavigateHomeOnTitleLongPress: Boolean,
+): Boolean {
+    if (isInSelectionMode) return false
+    if (folderName == null) return false
+    return shouldNavigateHomeOnTitleLongPress
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun MediaPickerScreen(
@@ -154,6 +164,12 @@ internal fun MediaPickerScreen(
     var shouldShowDeleteVideosConfirmation by rememberSaveable { mutableStateOf(false) }
 
     val isLibraryMode = uiState.screenMode == MediaPickerScreenMode.LIBRARY
+    val isTitleLongPressHomeNavigationEnabled = shouldEnableTitleLongPressHomeNavigation(
+        isInSelectionMode = selectionManager.isInSelectionMode,
+        folderName = uiState.folderName,
+        shouldNavigateHomeOnTitleLongPress = uiState.preferences.shouldNavigateHomeOnTitleLongPress,
+    )
+
     val isRecycleBinMode = uiState.screenMode == MediaPickerScreenMode.RECYCLE_BIN
     val shouldShowRecycleBinEntry = isLibraryMode &&
         uiState.folderName == null &&
@@ -179,10 +195,10 @@ internal fun MediaPickerScreen(
                     )
                     ).takeIf { !selectionManager.isInSelectionMode } ?: "",
                 fontWeight = FontWeight.Bold.takeIf { uiState.folderName == null },
-                onTitleLongClick = when {
-                    selectionManager.isInSelectionMode -> null
-                    uiState.folderName != null -> onNavigateHome
-                    else -> null
+                onTitleLongClick = if (isTitleLongPressHomeNavigationEnabled) {
+                    { onNavigateHome() }
+                } else {
+                    null
                 },
                 navigationIcon = {
                     if (selectionManager.isInSelectionMode) {

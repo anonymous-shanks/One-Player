@@ -65,7 +65,7 @@ private fun AppearancePreferencesContent(
     Scaffold(
         topBar = {
             NextTopAppBar(
-                title = stringResource(id = R.string.appearance_name),
+                title = stringResource(id = R.string.appearance_and_general_name),
                 navigationIcon = {
                     FilledTonalIconButton(onClick = onNavigateUp) {
                         Icon(
@@ -85,7 +85,7 @@ private fun AppearancePreferencesContent(
                 .padding(innerPadding.withBottomFallback())
                 .padding(horizontal = 16.dp),
         ) {
-            ListSectionTitle(text = stringResource(id = R.string.appearance_name))
+            ListSectionTitle(text = stringResource(id = R.string.appearance_and_general_name))
             Column(
                 verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
             ) {
@@ -128,8 +128,16 @@ private fun AppearancePreferencesContent(
                     icon = NextIcons.Cloud,
                     isChecked = uiState.preferences.shouldShowCloudTab,
                     onClick = { onEvent(AppearancePreferencesEvent.ToggleShowCloudTab) },
-                    isLastItem = true,
                     modifier = Modifier.testTag("appearance_show_cloud_tab"),
+                )
+                PreferenceSwitch(
+                    title = stringResource(id = R.string.home_title_long_press_to_root),
+                    description = stringResource(id = R.string.home_title_long_press_to_root_description),
+                    icon = NextIcons.Title,
+                    isChecked = uiState.preferences.shouldNavigateHomeOnTitleLongPress,
+                    onClick = { onEvent(AppearancePreferencesEvent.ToggleNavigateHomeOnTitleLongPress) },
+                    isLastItem = true,
+                    modifier = Modifier.testTag("appearance_title_long_press_home"),
                 )
             }
         }

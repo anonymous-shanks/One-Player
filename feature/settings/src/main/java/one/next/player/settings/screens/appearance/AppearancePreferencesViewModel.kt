@@ -43,6 +43,7 @@ class AppearancePreferencesViewModel @Inject constructor(
             AppearancePreferencesEvent.ToggleUseDynamicColors -> toggleUseDynamicColors()
             AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme -> toggleUseHighContrastDarkTheme()
             AppearancePreferencesEvent.ToggleShowCloudTab -> toggleShowCloudTab()
+            AppearancePreferencesEvent.ToggleNavigateHomeOnTitleLongPress -> toggleNavigateHomeOnTitleLongPress()
         }
     }
 
@@ -102,6 +103,16 @@ class AppearancePreferencesViewModel @Inject constructor(
             }
         }
     }
+
+    private fun toggleNavigateHomeOnTitleLongPress() {
+        viewModelScope.launch {
+            preferencesRepository.updateApplicationPreferences {
+                it.copy(
+                    shouldNavigateHomeOnTitleLongPress = !it.shouldNavigateHomeOnTitleLongPress,
+                )
+            }
+        }
+    }
 }
 
 @Stable
@@ -118,6 +129,7 @@ sealed interface AppearancePreferencesEvent {
     data object ToggleUseDynamicColors : AppearancePreferencesEvent
     data object ToggleUseHighContrastDarkTheme : AppearancePreferencesEvent
     data object ToggleShowCloudTab : AppearancePreferencesEvent
+    data object ToggleNavigateHomeOnTitleLongPress : AppearancePreferencesEvent
 }
 
 sealed interface AppearancePreferenceDialog {

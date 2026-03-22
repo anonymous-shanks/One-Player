@@ -75,6 +75,7 @@
     <string name="embedded_styles">嵌入式樣式</string>
     <string name="device_decoders_only">僅限裝置解碼器</string>
     <string name="appearance_name">外觀</string>
+    <string name="appearance_and_general_name">外觀與通用</string>
     <string name="embedded_styles_desc">應用存在於字幕檔之中的嵌入式樣式，例如 ASS 等</string>
     <string name="subtitle_background_desc">啟用字幕背景</string>
     <string name="preferred_audio_lang">優先的音訊語言</string>
@@ -378,6 +379,8 @@
     <string name="search_settings">搜尋設定…</string>
     <string name="show_cloud_tab">顯示雲端分頁</string>
     <string name="show_cloud_tab_description">在底部導覽列顯示雲端入口</string>
+    <string name="home_title_long_press_to_root">長按標題回到首頁</string>
+    <string name="home_title_long_press_to_root_description">長按標題列可直接返回根目錄</string>
     <string name="take_screenshot">截圖</string>
     <string name="screenshot_saved">截圖已儲存到 Pictures/Screenshots</string>
     <string name="screenshot_failed">截圖儲存失敗</string>

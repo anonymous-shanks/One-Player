@@ -11,6 +11,7 @@ data class ApplicationPreferences(
     val shouldUseHighContrastDarkTheme: Boolean = false,
     val shouldUseDynamicColors: Boolean = true,
     val shouldShowCloudTab: Boolean = true,
+    val shouldNavigateHomeOnTitleLongPress: Boolean = false,
     val shouldPreventScreenshots: Boolean = false,
     val shouldHideInRecents: Boolean = false,
     val shouldMarkLastPlayedMedia: Boolean = true,
