@@ -1,5 +1,6 @@
 package one.next.player
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.SystemBarStyle
@@ -44,6 +45,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -86,12 +88,24 @@ class MainActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        val persistedThemeConfig = readPersistedThemeConfig(dataDir = applicationInfo.dataDir)
+        val bootstrapTheme = resolveBootstrapTheme(
+            themeConfig = persistedThemeConfig,
+            isSystemDarkTheme = isSystemDarkTheme(resources.configuration),
+        )
+        setTheme(resolveBootstrapSplashThemeStyle(shouldUseDarkTheme = bootstrapTheme.shouldUseDarkTheme))
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        val bootstrapShouldHideInRecents = readPersistedHideInRecents(dataDir = applicationInfo.dataDir)
         applyPrivacyProtection(
             shouldPreventScreenshots = viewModel.currentPreferences.shouldPreventScreenshots,
             shouldHideInRecents = viewModel.currentPreferences.shouldHideInRecents,
         )
         mediaService.initialize(this@MainActivity)
+        applySystemBars(
+            shouldHideInRecents = bootstrapShouldHideInRecents,
+            shouldUseDarkTheme = bootstrapTheme.shouldUseDarkTheme,
+        )
 
         var uiState: MainActivityUiState by mutableStateOf(MainActivityUiState.Loading)
 
@@ -103,13 +117,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        installSplashScreen().setKeepOnScreenCondition {
+        splashScreen.setKeepOnScreenCondition {
             when (uiState) {
                 MainActivityUiState.Loading -> true
                 is MainActivityUiState.Success -> false
             }
         }
-
         setContent {
             val shouldUseDarkTheme = shouldUseDarkTheme(uiState = uiState)
 
@@ -126,18 +139,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             LaunchedEffect(shouldHideInRecents, shouldUseDarkTheme) {
-                val systemBarScrim = this@MainActivity.resolvePrivacyPreviewScrim(shouldHideInRecents)
-                enableEdgeToEdge(
-                    statusBarStyle = SystemBarStyle.auto(
-                        lightScrim = systemBarScrim,
-                        darkScrim = systemBarScrim,
-                        detectDarkMode = { shouldUseDarkTheme },
-                    ),
-                    navigationBarStyle = SystemBarStyle.auto(
-                        lightScrim = systemBarScrim,
-                        darkScrim = systemBarScrim,
-                        detectDarkMode = { shouldUseDarkTheme },
-                    ),
+                applySystemBars(
+                    shouldHideInRecents = shouldHideInRecents,
+                    shouldUseDarkTheme = shouldUseDarkTheme,
                 )
             }
 
@@ -303,7 +307,77 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun applySystemBars(
+        shouldHideInRecents: Boolean,
+        shouldUseDarkTheme: Boolean,
+    ) {
+        val systemBarScrim = resolvePrivacyPreviewScrim(shouldHideInRecents)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                lightScrim = systemBarScrim,
+                darkScrim = systemBarScrim,
+                detectDarkMode = { shouldUseDarkTheme },
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                lightScrim = systemBarScrim,
+                darkScrim = systemBarScrim,
+                detectDarkMode = { shouldUseDarkTheme },
+            ),
+        )
+    }
 }
+
+internal data class BootstrapThemeResolution(
+    val shouldUseDarkTheme: Boolean,
+)
+
+internal fun resolveBootstrapTheme(
+    themeConfig: ThemeConfig,
+    isSystemDarkTheme: Boolean,
+): BootstrapThemeResolution = when (themeConfig) {
+    ThemeConfig.SYSTEM -> BootstrapThemeResolution(shouldUseDarkTheme = isSystemDarkTheme)
+    ThemeConfig.OFF -> BootstrapThemeResolution(shouldUseDarkTheme = false)
+    ThemeConfig.ON -> BootstrapThemeResolution(shouldUseDarkTheme = true)
+}
+
+internal fun readPersistedThemeConfig(dataDir: String): ThemeConfig {
+    val preferencesFile = File(dataDir, "files/datastore/app_preferences.json")
+    if (!preferencesFile.exists()) return ThemeConfig.SYSTEM
+
+    val rawConfig = runCatching { preferencesFile.readText() }
+        .getOrNull()
+        ?.let(THEME_CONFIG_PATTERN::find)
+        ?.groupValues
+        ?.getOrNull(1)
+        ?: return ThemeConfig.SYSTEM
+
+    return ThemeConfig.entries.firstOrNull { it.name == rawConfig } ?: ThemeConfig.SYSTEM
+}
+
+internal fun readPersistedHideInRecents(dataDir: String): Boolean {
+    val preferencesFile = File(dataDir, "files/datastore/app_preferences.json")
+    if (!preferencesFile.exists()) return false
+
+    return runCatching { preferencesFile.readText() }
+        .getOrNull()
+        ?.let(HIDE_IN_RECENTS_PATTERN::find)
+        ?.groupValues
+        ?.getOrNull(1)
+        ?.toBooleanStrictOrNull()
+        ?: false
+}
+
+private fun resolveBootstrapSplashThemeStyle(shouldUseDarkTheme: Boolean): Int = if (shouldUseDarkTheme) {
+    one.next.player.R.style.Theme_OnePlayer_Splash_Dark
+} else {
+    one.next.player.R.style.Theme_OnePlayer_Splash_Light
+}
+
+private fun isSystemDarkTheme(configuration: Configuration): Boolean = (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+private val THEME_CONFIG_PATTERN = "\"themeConfig\"\\s*:\\s*\"([A-Z_]+)\"".toRegex()
+private val HIDE_IN_RECENTS_PATTERN = "\"shouldHideInRecents\"\\s*:\\s*(true|false)".toRegex()
 
 private enum class TopLevelTab(
     val labelResId: Int,
