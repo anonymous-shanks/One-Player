@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import kotlin.time.Duration.Companion.seconds
+import one.next.player.core.data.repository.ExternalSubtitleFontSource
 import one.next.player.core.model.ControlButtonsPosition
 import one.next.player.core.model.PlayerControl
 import one.next.player.core.model.PlayerPreferences
@@ -96,6 +97,7 @@ fun MediaPlayerScreen(
     player: Player?,
     viewModel: PlayerViewModel,
     playerPreferences: PlayerPreferences,
+    externalSubtitleFontSource: ExternalSubtitleFontSource?,
     modifier: Modifier = Modifier,
     onSelectSubtitleClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -263,6 +265,7 @@ fun MediaPlayerScreen(
                         textSize = playerPreferences.subtitleTextSize,
                         shouldUseBoldText = playerPreferences.shouldUseBoldSubtitleText,
                         shouldApplyEmbeddedStyles = playerPreferences.shouldApplyEmbeddedStyles,
+                        externalSubtitleFontSource = externalSubtitleFontSource,
                     ),
                 )
 

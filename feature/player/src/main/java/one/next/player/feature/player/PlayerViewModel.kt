@@ -10,8 +10,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import one.next.player.core.data.repository.ExternalSubtitleFontSource
 import one.next.player.core.data.repository.MediaRepository
 import one.next.player.core.data.repository.PreferencesRepository
+import one.next.player.core.data.repository.SubtitleFontRepository
 import one.next.player.core.domain.GetSortedPlaylistUseCase
 import one.next.player.core.model.LoopMode
 import one.next.player.core.model.PlayerControl
@@ -25,6 +27,7 @@ import one.next.player.feature.player.state.VideoZoomEvent
 class PlayerViewModel @Inject constructor(
     private val mediaRepository: MediaRepository,
     private val preferencesRepository: PreferencesRepository,
+    private val subtitleFontRepository: SubtitleFontRepository,
     private val getSortedPlaylistUseCase: GetSortedPlaylistUseCase,
 ) : ViewModel() {
 
@@ -53,6 +56,11 @@ class PlayerViewModel @Inject constructor(
                         shouldHideInRecents = prefs.shouldHideInRecents,
                     )
                 }
+            }
+        }
+        viewModelScope.launch {
+            subtitleFontRepository.source.collect { source ->
+                internalUiState.update { it.copy(externalSubtitleFontSource = source) }
             }
         }
     }
@@ -131,6 +139,7 @@ data class PlayerUiState(
     val playerPreferences: PlayerPreferences? = null,
     val shouldPreventScreenshots: Boolean = false,
     val shouldHideInRecents: Boolean = false,
+    val externalSubtitleFontSource: ExternalSubtitleFontSource? = null,
 )
 
 sealed interface PlayerEvent

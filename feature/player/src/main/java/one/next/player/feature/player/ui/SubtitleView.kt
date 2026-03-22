@@ -21,11 +21,14 @@ import androidx.media3.ui.SubtitleView
 import io.github.peerless2012.ass.media.AssHandler
 import io.github.peerless2012.ass.media.kt.withAssSupport
 import io.github.peerless2012.ass.media.widget.AssSubtitleView as AssMediaSubtitleView
+import one.next.player.core.data.repository.ExternalSubtitleFontSource
 import one.next.player.core.model.Font
 import one.next.player.feature.player.extensions.toTypeface
 import one.next.player.feature.player.state.rememberCuesState
 import one.next.player.feature.player.state.rememberTracksState
 import one.next.player.feature.player.subtitle.AssHandlerRegistry
+import one.next.player.feature.player.subtitle.SubtitleFontPolicy
+import one.next.player.feature.player.subtitle.decideSubtitleFontPolicy
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -46,28 +49,45 @@ fun SubtitleView(
             }
     }
 
+    val subtitleFontPolicy = decideSubtitleFontPolicy(
+        isAssSubtitleSelected = isAssSubtitleSelected,
+        shouldUseSystemCaptionStyle = configuration.shouldUseSystemCaptionStyle,
+        hasExternalFont = configuration.externalSubtitleFontSource != null,
+    )
+
     AndroidView(
         modifier = modifier.fillMaxSize(),
         factory = { context ->
             SubtitleView(context).apply {
                 val captioningManager = getSystemService(context, CaptioningManager::class.java) ?: return@apply
-                if (configuration.shouldUseSystemCaptionStyle) {
-                    val systemCaptionStyle = CaptionStyleCompat.createFromCaptionStyle(captioningManager.userStyle)
-                    setStyle(systemCaptionStyle)
-                } else {
-                    val userStyle = CaptionStyleCompat(
-                        android.graphics.Color.WHITE,
-                        android.graphics.Color.BLACK.takeIf { configuration.shouldShowBackground } ?: android.graphics.Color.TRANSPARENT,
-                        android.graphics.Color.TRANSPARENT,
-                        CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
-                        android.graphics.Color.BLACK,
-                        Typeface.create(
-                            configuration.font.toTypeface(),
-                            Typeface.BOLD.takeIf { configuration.shouldUseBoldText } ?: Typeface.NORMAL,
-                        ),
-                    )
-                    setStyle(userStyle)
-                    setFixedTextSize(TypedValue.COMPLEX_UNIT_SP, configuration.textSize.toFloat())
+                when (subtitleFontPolicy) {
+                    SubtitleFontPolicy.Ass,
+                    SubtitleFontPolicy.SystemCaptionStyle,
+                    -> {
+                        val systemCaptionStyle = CaptionStyleCompat.createFromCaptionStyle(captioningManager.userStyle)
+                        setStyle(systemCaptionStyle)
+                    }
+
+                    SubtitleFontPolicy.ExternalOrFallback -> {
+                        val baseTypeface = runCatching {
+                            configuration.externalSubtitleFontSource
+                                ?.absolutePath
+                                ?.let(Typeface::createFromFile)
+                        }.getOrNull() ?: configuration.font.toTypeface()
+                        val userStyle = CaptionStyleCompat(
+                            android.graphics.Color.WHITE,
+                            android.graphics.Color.BLACK.takeIf { configuration.shouldShowBackground } ?: android.graphics.Color.TRANSPARENT,
+                            android.graphics.Color.TRANSPARENT,
+                            CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
+                            android.graphics.Color.BLACK,
+                            Typeface.create(
+                                baseTypeface,
+                                Typeface.BOLD.takeIf { configuration.shouldUseBoldText } ?: Typeface.NORMAL,
+                            ),
+                        )
+                        setStyle(userStyle)
+                        setFixedTextSize(TypedValue.COMPLEX_UNIT_SP, configuration.textSize.toFloat())
+                    }
                 }
                 setApplyEmbeddedStyles(configuration.shouldApplyEmbeddedStyles)
             }
@@ -99,6 +119,7 @@ data class SubtitleConfiguration(
     val textSize: Int,
     val shouldUseBoldText: Boolean,
     val shouldApplyEmbeddedStyles: Boolean,
+    val externalSubtitleFontSource: ExternalSubtitleFontSource?,
 )
 
 @OptIn(UnstableApi::class)

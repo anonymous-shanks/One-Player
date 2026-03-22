@@ -167,6 +167,7 @@ class PlayerActivity : AppCompatActivity() {
                     player = player,
                     viewModel = viewModel,
                     playerPreferences = uiState.playerPreferences ?: return@OnePlayerTheme,
+                    externalSubtitleFontSource = uiState.externalSubtitleFontSource,
                     onSelectSubtitleClick = {
                         lifecycleScope.launch {
                             val uri = subtitleFileSuspendLauncher.launch(
