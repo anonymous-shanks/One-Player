@@ -370,6 +370,25 @@ val Context.thumbnailCacheDir: File
         return dir
     }
 
+val Context.externalSubtitleFontDir: File
+    get() {
+        val dir = File(filesDir, "subtitle-fonts")
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+val Context.externalSubtitleFontFile: File
+    get() = File(externalSubtitleFontDir, "current.font")
+
+val Context.externalSubtitleFontTempFile: File
+    get() = File(externalSubtitleFontDir, "importing.font")
+
+val Context.externalSubtitleFontMetaFile: File
+    get() = File(externalSubtitleFontDir, "current.json")
+
+val Context.externalSubtitleFontTempMetaFile: File
+    get() = File(externalSubtitleFontDir, "importing.json")
+
 suspend fun ContentResolver.updateMedia(
     uri: Uri,
     contentValues: ContentValues,

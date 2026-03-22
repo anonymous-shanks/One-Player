@@ -5,14 +5,18 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import one.next.player.core.data.repository.AndroidSubtitleFontFileValidator
 import one.next.player.core.data.repository.LocalMediaRepository
 import one.next.player.core.data.repository.LocalPreferencesRepository
 import one.next.player.core.data.repository.LocalRemoteServerRepository
 import one.next.player.core.data.repository.LocalSearchHistoryRepository
+import one.next.player.core.data.repository.LocalSubtitleFontRepository
 import one.next.player.core.data.repository.MediaRepository
 import one.next.player.core.data.repository.PreferencesRepository
 import one.next.player.core.data.repository.RemoteServerRepository
 import one.next.player.core.data.repository.SearchHistoryRepository
+import one.next.player.core.data.repository.SubtitleFontFileValidator
+import one.next.player.core.data.repository.SubtitleFontRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -40,4 +44,15 @@ interface DataModule {
     fun bindsRemoteServerRepository(
         remoteServerRepository: LocalRemoteServerRepository,
     ): RemoteServerRepository
+
+    @Binds
+    @Singleton
+    fun bindsSubtitleFontRepository(
+        subtitleFontRepository: LocalSubtitleFontRepository,
+    ): SubtitleFontRepository
+
+    @Binds
+    fun bindsSubtitleFontFileValidator(
+        subtitleFontFileValidator: AndroidSubtitleFontFileValidator,
+    ): SubtitleFontFileValidator
 }
