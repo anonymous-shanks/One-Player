@@ -82,6 +82,8 @@ class PictureInPictureState(
 
     var isInPictureInPictureMode: Boolean by mutableStateOf(false)
         private set
+    var videoViewRect: Rect? by mutableStateOf(null)
+        private set
 
     private val pictureInPictureParamsBuilder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         PictureInPictureParams.Builder().apply {
@@ -93,15 +95,19 @@ class PictureInPictureState(
         null
     }
 
-    fun setVideoViewRect(rect: Rect) {
+    fun updateVideoViewRect(rect: Rect) {
+        val resolvedRect = Rect(rect)
+        if (videoViewRect == resolvedRect) return
+
+        videoViewRect = resolvedRect
         if (pictureInPictureParamsBuilder == null) return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        if (rect.width() <= 0 || rect.height() <= 0) return
+        if (resolvedRect.width() <= 0 || resolvedRect.height() <= 0) return
 
-        Rational(rect.width(), rect.height()).takeIf { it.toFloat() in 0.5f..2.39f }?.let {
+        Rational(resolvedRect.width(), resolvedRect.height()).takeIf { it.toFloat() in 0.5f..2.39f }?.let {
             pictureInPictureParamsBuilder.setAspectRatio(it)
         }
-        pictureInPictureParamsBuilder.setSourceRectHint(rect)
+        pictureInPictureParamsBuilder.setSourceRectHint(resolvedRect)
         activity.setPictureInPictureParams(pictureInPictureParamsBuilder.build())
     }
 

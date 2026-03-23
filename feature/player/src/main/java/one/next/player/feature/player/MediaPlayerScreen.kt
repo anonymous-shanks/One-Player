@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -27,7 +29,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,14 +36,19 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -55,8 +61,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 import one.next.player.core.data.repository.ExternalSubtitleFontSource
 import one.next.player.core.model.ControlButtonsPosition
 import one.next.player.core.model.PlayerControl
@@ -67,7 +73,6 @@ import one.next.player.feature.player.buttons.NextButton
 import one.next.player.feature.player.buttons.PlayPauseButton
 import one.next.player.feature.player.buttons.PlayerButton
 import one.next.player.feature.player.buttons.PreviousButton
-import one.next.player.feature.player.extensions.formatted
 import one.next.player.feature.player.extensions.nameRes
 import one.next.player.feature.player.state.ControlsVisibilityState
 import one.next.player.feature.player.state.VerticalGesture
@@ -97,27 +102,25 @@ val LocalControlsVisibilityState = compositionLocalOf<ControlsVisibilityState?> 
 
 internal data class LongPressOverlayUiState(
     val speedText: String,
-    val positionText: String,
 )
 
 internal fun resolveLongPressOverlayUiState(
     isLongPressGestureInAction: Boolean,
+    isDebugLongPressOverlayVisible: Boolean,
     longPressSpeed: Float,
-    longPressPreviewPositionMs: Long,
+    shouldShowOverlay: Boolean,
 ): LongPressOverlayUiState? {
-    if (!isLongPressGestureInAction) return null
-
-    val resolvedPositionMs = longPressPreviewPositionMs.coerceAtLeast(0L)
+    if (!shouldShowOverlay && !isDebugLongPressOverlayVisible) return null
+    if (!isLongPressGestureInAction && !isDebugLongPressOverlayVisible) return null
 
     return LongPressOverlayUiState(
         speedText = String.format(Locale.US, "%.1fx", longPressSpeed),
-        positionText = resolvedPositionMs.milliseconds.formatted(),
     )
 }
 
 @OptIn(UnstableApi::class)
 @Composable
-fun MediaPlayerScreen(
+internal fun MediaPlayerScreen(
     player: Player?,
     viewModel: PlayerViewModel,
     playerPreferences: PlayerPreferences,
@@ -177,11 +180,6 @@ fun MediaPlayerScreen(
         screenOrientation = playerPreferences.playerScreenOrientation,
     )
     val errorState = rememberErrorState(player = player)
-    val longPressOverlayUiState = resolveLongPressOverlayUiState(
-        isLongPressGestureInAction = tapGestureState.isLongPressGestureInAction,
-        longPressSpeed = tapGestureState.longPressSpeed,
-        longPressPreviewPositionMs = tapGestureState.longPressPreviewPositionMs,
-    )
 
     LaunchedEffect(pictureInPictureState.isInPictureInPictureMode) {
         if (pictureInPictureState.isInPictureInPictureMode) {
@@ -231,10 +229,46 @@ fun MediaPlayerScreen(
         true -> customizingHiddenPlayerControls
         false -> playerPreferences.hiddenPlayerControls
     }
+    var shouldShowOverlay by remember { mutableStateOf(false) }
+    var longPressOverlayAnimationStep by remember { mutableIntStateOf(0) }
+    val longPressOverlayUiState = resolveLongPressOverlayUiState(
+        isLongPressGestureInAction = tapGestureState.isLongPressGestureInAction,
+        isDebugLongPressOverlayVisible = playerPreferences.isDebugLongPressOverlayVisible,
+        longPressSpeed = tapGestureState.longPressSpeed,
+        shouldShowOverlay = shouldShowOverlay,
+    )
 
     LaunchedEffect(playerPreferences.hiddenPlayerControls, isCustomizingControls) {
         if (!isCustomizingControls) {
             customizingHiddenPlayerControls = playerPreferences.hiddenPlayerControls - permanentlyVisibleControls
+        }
+    }
+
+    LaunchedEffect(tapGestureState.isLongPressGestureInAction) {
+        if (!tapGestureState.isLongPressGestureInAction) {
+            shouldShowOverlay = false
+            return@LaunchedEffect
+        }
+
+        shouldShowOverlay = true
+        delay(3.seconds)
+        shouldShowOverlay = false
+    }
+
+    LaunchedEffect(longPressOverlayUiState != null) {
+        if (longPressOverlayUiState == null) {
+            longPressOverlayAnimationStep = 0
+            return@LaunchedEffect
+        }
+        while (true) {
+            longPressOverlayAnimationStep = 0
+            delay(120)
+            longPressOverlayAnimationStep = 1
+            delay(120)
+            longPressOverlayAnimationStep = 2
+            delay(120)
+            longPressOverlayAnimationStep = 3
+            delay(320)
         }
     }
 
@@ -278,6 +312,10 @@ fun MediaPlayerScreen(
                     .fillMaxSize()
                     .background(Color.Black),
             ) {
+                val longPressOverlayTopPadding = pictureInPictureState.videoViewRect
+                    ?.top
+                    ?.let { with(LocalDensity.current) { it.toDp() } + 16.dp }
+                    ?: 24.dp
                 PlayerContentFrame(
                     player = player,
                     pictureInPictureState = pictureInPictureState,
@@ -326,25 +364,15 @@ fun MediaPlayerScreen(
                 }
                 DoubleTapIndicator(tapGestureState = tapGestureState)
 
-                AnimatedVisibility(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .safeDrawingPadding()
-                        .padding(
-                            start = 24.dp,
-                            bottom = if (controlsVisibilityState.isControlsVisible) 96.dp else 24.dp,
-                        ),
-                    visible = longPressOverlayUiState != null,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                ) {
-                    longPressOverlayUiState?.let { overlayUiState ->
-                        LongPressSpeedOverlay(
-                            modifier = Modifier.testTag("long_press_speed_overlay"),
-                            speedText = overlayUiState.speedText,
-                            positionText = overlayUiState.positionText,
-                        )
-                    }
+                if (longPressOverlayUiState != null) {
+                    LongPressSpeedOverlay(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = longPressOverlayTopPadding)
+                            .testTag("long_press_speed_overlay"),
+                        speedText = longPressOverlayUiState.speedText,
+                        animationStep = longPressOverlayAnimationStep,
+                    )
                 }
 
                 if (controlsVisibilityState.isControlsVisible && controlsVisibilityState.isControlsLocked) {
@@ -653,35 +681,76 @@ fun InfoView(
 @Composable
 private fun LongPressSpeedOverlay(
     speedText: String,
-    positionText: String,
+    animationStep: Int,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = Color.Black.copy(alpha = 0.78f),
+    Row(
+        modifier = modifier
+            .background(
+                color = Color.Black.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(8.dp),
+            )
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = 16.dp,
-                vertical = 12.dp,
+        LongPressSpeedIndicator(animationStep = animationStep)
+        Text(
+            text = speedText,
+            modifier = Modifier.testTag("long_press_speed_text"),
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Bold,
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.10f),
+                    offset = Offset(0f, 1f),
+                    blurRadius = 2f,
+                ),
             ),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = speedText,
-                modifier = Modifier.testTag("long_press_speed_text"),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.White,
-            )
-            Text(
-                text = positionText,
-                modifier = Modifier.testTag("long_press_position_text"),
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.White.copy(alpha = 0.86f),
-            )
-        }
+            color = Color.White,
+        )
     }
+}
+
+@Composable
+private fun LongPressSpeedIndicator(
+    animationStep: Int,
+    modifier: Modifier = Modifier,
+) {
+    val alpha1 by animateFloatAsState(
+        targetValue = if (animationStep >= 1) 1f else 0f,
+        animationSpec = tween(durationMillis = 120),
+        label = "long_press_arrow_1",
+    )
+    val alpha2 by animateFloatAsState(
+        targetValue = if (animationStep >= 2) 1f else 0f,
+        animationSpec = tween(durationMillis = 120),
+        label = "long_press_arrow_2",
+    )
+    val alpha3 by animateFloatAsState(
+        targetValue = if (animationStep >= 3) 1f else 0f,
+        animationSpec = tween(durationMillis = 120),
+        label = "long_press_arrow_3",
+    )
+
+    Row(
+        modifier = modifier.testTag("long_press_speed_indicator"),
+        horizontalArrangement = Arrangement.spacedBy((-1).dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LongPressSpeedArrow(alpha = alpha1)
+        LongPressSpeedArrow(alpha = alpha2)
+        LongPressSpeedArrow(alpha = alpha3)
+    }
+}
+
+@Composable
+private fun LongPressSpeedArrow(alpha: Float) {
+    Icon(
+        painter = painterResource(coreUiR.drawable.ic_play),
+        contentDescription = null,
+        modifier = Modifier.size(11.dp),
+        tint = Color.White.copy(alpha = alpha),
+    )
 }
 
 @Composable

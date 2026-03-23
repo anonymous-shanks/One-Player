@@ -7,25 +7,50 @@ import org.junit.Test
 class LongPressOverlayUiStateTest {
 
     @Test
-    fun overlayUiState_isHiddenWhenNoLongPressOrDebugOverrideIsActive() {
+    fun overlayUiState_isHiddenWhenNoLongPress() {
         val result = resolveLongPressOverlayUiState(
             isLongPressGestureInAction = false,
+            isDebugLongPressOverlayVisible = false,
             longPressSpeed = 2.0f,
-            longPressPreviewPositionMs = 15_000L,
+            shouldShowOverlay = true,
         )
 
         assertNull(result)
     }
 
     @Test
-    fun overlayUiState_showsSpeedAndPositionDuringLongPress() {
+    fun overlayUiState_isHiddenWhenOverlayVisibilityIsDisabled() {
         val result = resolveLongPressOverlayUiState(
             isLongPressGestureInAction = true,
+            isDebugLongPressOverlayVisible = false,
             longPressSpeed = 2.0f,
-            longPressPreviewPositionMs = 15_000L,
+            shouldShowOverlay = false,
+        )
+
+        assertNull(result)
+    }
+
+    @Test
+    fun overlayUiState_showsSpeedDuringLongPress() {
+        val result = resolveLongPressOverlayUiState(
+            isLongPressGestureInAction = true,
+            isDebugLongPressOverlayVisible = false,
+            longPressSpeed = 2.0f,
+            shouldShowOverlay = true,
         )
 
         assertEquals("2.0x", result?.speedText)
-        assertEquals("00:15", result?.positionText)
+    }
+
+    @Test
+    fun overlayUiState_showsSpeedWhenDebugOverlayIsVisible() {
+        val result = resolveLongPressOverlayUiState(
+            isLongPressGestureInAction = false,
+            isDebugLongPressOverlayVisible = true,
+            longPressSpeed = 2.0f,
+            shouldShowOverlay = false,
+        )
+
+        assertEquals("2.0x", result?.speedText)
     }
 }

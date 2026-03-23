@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import one.next.player.feature.player.extensions.detectCustomHorizontalDragGestures
 import one.next.player.feature.player.extensions.detectCustomTransformGestures
 import one.next.player.feature.player.extensions.detectCustomVerticalDragGestures
@@ -32,6 +33,7 @@ fun PlayerGestures(
         Box(
             modifier = modifier
                 .fillMaxSize()
+                .testTag("player_gesture_surface")
                 .pointerInput(isEnabled, pictureInPictureState.isInPictureInPictureMode) {
                     if (!isEnabled) return@pointerInput
                     if (pictureInPictureState.isInPictureInPictureMode) return@pointerInput
@@ -51,7 +53,7 @@ fun PlayerGestures(
                         },
                         onLongPress = {
                             if (controlsVisibilityState.isControlsLocked) return@detectTapGestures
-                            tapGestureState.handleLongPress(offset = it)
+                            tapGestureState.handleLongPress()
                         },
                     )
                 }

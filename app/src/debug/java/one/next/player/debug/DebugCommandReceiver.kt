@@ -34,9 +34,14 @@ class DebugCommandReceiver : BroadcastReceiver() {
         }.start()
     }
 
-    private suspend fun dispatch(entryPoint: DebugCommandReceiverEntryPoint, intent: Intent) {
+    private suspend fun dispatch(
+        entryPoint: DebugCommandReceiverEntryPoint,
+        intent: Intent,
+    ) {
         when (intent.action) {
             ACTION_SET_IGNORE_NOMEDIA -> setIgnoreNoMedia(entryPoint.preferencesRepository(), intent)
+            ACTION_SET_LONG_PRESS_CONTROLS -> setLongPressControls(entryPoint.preferencesRepository(), intent)
+            ACTION_SET_LONG_PRESS_OVERLAY -> setLongPressOverlay(entryPoint.preferencesRepository(), intent)
             ACTION_REFRESH_LIBRARY -> refreshLibrary(entryPoint.mediaSynchronizer())
             ACTION_ADD_REMOTE_SERVER -> addRemoteServer(entryPoint.remoteServerRepository(), intent)
             ACTION_DELETE_REMOTE_SERVER -> deleteRemoteServer(entryPoint.remoteServerRepository(), intent)
@@ -55,6 +60,32 @@ class DebugCommandReceiver : BroadcastReceiver() {
             it.copy(shouldIgnoreNoMediaFiles = shouldIgnoreNoMediaFiles)
         }
         Logger.info(TAG, "shouldIgnoreNoMediaFiles set to $shouldIgnoreNoMediaFiles")
+    }
+
+    private suspend fun setLongPressControls(
+        preferencesRepository: PreferencesRepository,
+        intent: Intent,
+    ) {
+        if (!intent.hasExtra(EXTRA_ENABLED)) return
+
+        val isEnabled = intent.getBooleanExtra(EXTRA_ENABLED, false)
+        preferencesRepository.updatePlayerPreferences {
+            it.copy(shouldUseLongPressControls = isEnabled)
+        }
+        Logger.info(TAG, "shouldUseLongPressControls set to $isEnabled")
+    }
+
+    private suspend fun setLongPressOverlay(
+        preferencesRepository: PreferencesRepository,
+        intent: Intent,
+    ) {
+        if (!intent.hasExtra(EXTRA_ENABLED)) return
+
+        val isEnabled = intent.getBooleanExtra(EXTRA_ENABLED, false)
+        preferencesRepository.updatePlayerPreferences {
+            it.copy(isDebugLongPressOverlayVisible = isEnabled)
+        }
+        Logger.info(TAG, "isDebugLongPressOverlayVisible set to $isEnabled")
     }
 
     private suspend fun addRemoteServer(
@@ -111,6 +142,8 @@ class DebugCommandReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "DebugCommandReceiver"
         const val ACTION_SET_IGNORE_NOMEDIA = "one.next.player.debug.SET_IGNORE_NOMEDIA"
+        const val ACTION_SET_LONG_PRESS_CONTROLS = "one.next.player.debug.SET_LONG_PRESS_CONTROLS"
+        const val ACTION_SET_LONG_PRESS_OVERLAY = "one.next.player.debug.SET_LONG_PRESS_OVERLAY"
         const val ACTION_REFRESH_LIBRARY = "one.next.player.debug.REFRESH_LIBRARY"
         const val ACTION_ADD_REMOTE_SERVER = "one.next.player.debug.ADD_REMOTE_SERVER"
         const val ACTION_DELETE_REMOTE_SERVER = "one.next.player.debug.DELETE_REMOTE_SERVER"

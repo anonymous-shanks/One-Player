@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -98,7 +99,7 @@ private fun VideoListItem(
     onLongClick: (() -> Unit)? = null,
 ) {
     NextSegmentedListItem(
-        modifier = modifier,
+        modifier = modifier.testTag("item_video_${video.displayName}"),
         isSelected = isSelected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
@@ -177,7 +178,9 @@ private fun VideoGridItem(
     onLongClick: (() -> Unit)? = null,
 ) {
     NextSegmentedListItem(
-        modifier = modifier.width(IntrinsicSize.Min),
+        modifier = modifier
+            .width(IntrinsicSize.Min)
+            .testTag("item_video_${video.displayName}"),
         isSelected = isSelected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(

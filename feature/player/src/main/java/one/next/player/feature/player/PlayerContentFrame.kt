@@ -79,7 +79,7 @@ fun PlayerContentFrame(
                     bounds.right.toInt(),
                     bounds.bottom.toInt(),
                 )
-                pictureInPictureState.setVideoViewRect(rect)
+                pictureInPictureState.updateVideoViewRect(rect)
             }
             .graphicsLayer {
                 scaleX = videoZoomAndContentScaleState.zoom

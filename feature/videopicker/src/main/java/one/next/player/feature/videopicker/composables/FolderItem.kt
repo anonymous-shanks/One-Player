@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -90,7 +91,7 @@ private fun FolderListItem(
     onLongClick: (() -> Unit)? = null,
 ) {
     NextSegmentedListItem(
-        modifier = modifier,
+        modifier = modifier.testTag("item_folder_${folder.name}"),
         isSelected = isSelected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(
@@ -195,7 +196,9 @@ private fun FolderGridItem(
     onLongClick: (() -> Unit)? = null,
 ) {
     NextSegmentedListItem(
-        modifier = modifier.width(IntrinsicSize.Min),
+        modifier = modifier
+            .width(IntrinsicSize.Min)
+            .testTag("item_folder_${folder.name}"),
         isSelected = isSelected,
         contentPadding = PaddingValues(8.dp),
         colors = ListItemDefaults.segmentedColors(

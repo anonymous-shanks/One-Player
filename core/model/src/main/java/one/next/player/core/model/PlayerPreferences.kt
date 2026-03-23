@@ -27,6 +27,7 @@ data class PlayerPreferences(
     val isPanGestureEnabled: Boolean = false,
     val doubleTapGesture: DoubleTapGesture = DoubleTapGesture.BOTH,
     val shouldUseLongPressControls: Boolean = false,
+    val isDebugLongPressOverlayVisible: Boolean = false,
     val longPressControlsSpeed: Float = 2.0f,
     val seekIncrement: Int = DEFAULT_SEEK_INCREMENT,
     val seekSensitivity: Float = DEFAULT_SEEK_SENSITIVITY,
