@@ -18,7 +18,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -58,15 +60,19 @@ fun PlayerButton(
     val hapticFeedback = LocalHapticFeedback.current
     val isCustomizingButton = label != null
 
+    val currentOnClick by rememberUpdatedState(onClick)
+    val currentOnLongClick by rememberUpdatedState(onLongClick)
+    val currentIsInteractive by rememberUpdatedState(isInteractive)
+
     LaunchedEffect(interactionSource) {
         var isLongPressClicked = false
         interactionSource.interactions.collectLatest { interaction ->
-            if (!isInteractive) return@collectLatest
+            if (!currentIsInteractive) return@collectLatest
             when (interaction) {
                 is PressInteraction.Press -> {
                     isLongPressClicked = false
                     delay(viewConfiguration.longPressTimeoutMillis)
-                    onLongClick?.let {
+                    currentOnLongClick?.let {
                         isLongPressClicked = true
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                         it.invoke()
@@ -75,7 +81,7 @@ fun PlayerButton(
 
                 is PressInteraction.Release -> {
                     if (!isLongPressClicked) {
-                        onClick()
+                        currentOnClick()
                     }
                 }
             }
