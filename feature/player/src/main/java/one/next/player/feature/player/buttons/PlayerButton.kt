@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -88,9 +88,10 @@ fun PlayerButton(
         }
     }
 
-    val selectionBadgeBackgroundColor = Color.White
-    val selectionBadgeInactiveColor = Color(0xFF2E3444)
-    val customizeBorderColor = Color(0xFFD7B46A)
+    val colorScheme = MaterialTheme.colorScheme
+    val selectionBadgeBackgroundColor = colorScheme.primaryContainer
+    val selectionBadgeInactiveColor = colorScheme.surfaceContainerHighest
+    val customizeBorderColor = colorScheme.primary.copy(alpha = 0.7f)
     val selectionBadgeSize = if (buttonSize >= 56.dp) 20.dp else 18.dp
     val selectionBadgeIconSize = if (buttonSize >= 56.dp) 13.dp else 12.dp
 
@@ -104,6 +105,12 @@ fun PlayerButton(
                 enabled = isEnabled,
                 modifier = Modifier.size(buttonSize),
                 interactionSource = interactionSource,
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = colorScheme.primary,
+                    contentColor = colorScheme.onPrimary,
+                    disabledContainerColor = colorScheme.surfaceContainerHighest.copy(alpha = 0.6f),
+                    disabledContentColor = colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                ),
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -128,7 +135,7 @@ fun PlayerButton(
                         Icon(
                             imageVector = NextIcons.Check,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = colorScheme.primary,
                             modifier = Modifier.size(selectionBadgeIconSize),
                         )
                     }
@@ -178,7 +185,7 @@ fun PlayerButton(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
+            color = colorScheme.onSurface,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

@@ -242,7 +242,6 @@ private val highContrastDarkColorScheme = darkColorScheme(
 @Composable
 fun OnePlayerTheme(
     shouldUseDarkTheme: Boolean = isSystemInDarkTheme(),
-    shouldUseHighContrastDarkTheme: Boolean = false,
     shouldUseDynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
@@ -250,33 +249,11 @@ fun OnePlayerTheme(
         shouldUseDynamicColor && supportsDynamicTheming() -> {
             val context = LocalContext.current
             when {
-                shouldUseDarkTheme && shouldUseHighContrastDarkTheme -> dynamicDarkColorScheme(context).copy(
-                    background = backgroundPureBlack,
-                    surface = surfacePureBlack,
-                    surfaceDim = surfaceDimPureBlack,
-                    surfaceBright = surfaceBrightPureBlack,
-                    surfaceContainerLowest = surfaceContainerLowestPureBlack,
-                    surfaceContainerLow = surfaceContainerLowPureBlack,
-                    surfaceContainer = surfaceContainerPureBlack,
-                    surfaceContainerHigh = surfaceContainerHighPureBlack,
-                    surfaceContainerHighest = surfaceContainerHighestPureBlack,
-                )
                 shouldUseDarkTheme -> dynamicDarkColorScheme(context)
                 else -> dynamicLightColorScheme(context)
             }
         }
 
-        shouldUseDarkTheme && shouldUseHighContrastDarkTheme -> darkScheme.copy(
-            background = backgroundPureBlack,
-            surface = surfacePureBlack,
-            surfaceDim = surfaceDimPureBlack,
-            surfaceBright = surfaceBrightPureBlack,
-            surfaceContainerLowest = surfaceContainerLowestPureBlack,
-            surfaceContainerLow = surfaceContainerLowPureBlack,
-            surfaceContainer = surfaceContainerPureBlack,
-            surfaceContainerHigh = surfaceContainerHighPureBlack,
-            surfaceContainerHighest = surfaceContainerHighestPureBlack,
-        )
         shouldUseDarkTheme -> darkScheme
         else -> lightScheme
     }

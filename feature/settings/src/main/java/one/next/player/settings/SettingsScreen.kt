@@ -235,7 +235,6 @@ internal enum class SettingRow(
         subSettingResIds = listOf(
             R.string.dark_theme,
             R.string.dynamic_theme,
-            R.string.high_contrast_dark_theme,
             R.string.app_language,
             R.string.app_language_description,
             R.string.show_cloud_tab,

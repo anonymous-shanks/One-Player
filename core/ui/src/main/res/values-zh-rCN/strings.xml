@@ -158,8 +158,6 @@
     <string name="hundred_percent">100%</string>
     <string name="zoom_gesture">缩放手势</string>
     <string name="zoom_gesture_description">捏合可缩放视频</string>
-    <string name="high_contrast_dark_theme">高对比度深色主题</string>
-    <string name="high_contrast_dark_theme_desc">在深色主题中使用纯黑背景</string>
     <string name="pause_on_headset_disconnect_desc">耳机从设备断开连接时暂停播放</string>
     <string name="audio_desc">音频播放选项</string>
     <string name="pause_on_headset_disconnect">断开连接时暂停</string>

@@ -41,7 +41,6 @@ class AppearancePreferencesViewModel @Inject constructor(
             is AppearancePreferencesEvent.UpdateThemeConfig -> updateThemeConfig(event.themeConfig)
             is AppearancePreferencesEvent.UpdateAppLanguage -> updateAppLanguage(event.languageTag)
             AppearancePreferencesEvent.ToggleUseDynamicColors -> toggleUseDynamicColors()
-            AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme -> toggleUseHighContrastDarkTheme()
             AppearancePreferencesEvent.ToggleShowCloudTab -> toggleShowCloudTab()
             AppearancePreferencesEvent.ToggleNavigateHomeOnTitleLongPress -> toggleNavigateHomeOnTitleLongPress()
         }
@@ -88,14 +87,6 @@ class AppearancePreferencesViewModel @Inject constructor(
         }
     }
 
-    private fun toggleUseHighContrastDarkTheme() {
-        viewModelScope.launch {
-            preferencesRepository.updateApplicationPreferences {
-                it.copy(shouldUseHighContrastDarkTheme = !it.shouldUseHighContrastDarkTheme)
-            }
-        }
-    }
-
     private fun toggleShowCloudTab() {
         viewModelScope.launch {
             preferencesRepository.updateApplicationPreferences {
@@ -127,7 +118,6 @@ sealed interface AppearancePreferencesEvent {
     data class UpdateThemeConfig(val themeConfig: ThemeConfig) : AppearancePreferencesEvent
     data class UpdateAppLanguage(val languageTag: String) : AppearancePreferencesEvent
     data object ToggleUseDynamicColors : AppearancePreferencesEvent
-    data object ToggleUseHighContrastDarkTheme : AppearancePreferencesEvent
     data object ToggleShowCloudTab : AppearancePreferencesEvent
     data object ToggleNavigateHomeOnTitleLongPress : AppearancePreferencesEvent
 }

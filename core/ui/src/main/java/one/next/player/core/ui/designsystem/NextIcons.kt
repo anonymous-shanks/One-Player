@@ -19,7 +19,6 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Delete
@@ -93,7 +92,6 @@ object NextIcons {
     val Check = Icons.Rounded.Check
     val CheckBox = Icons.Rounded.CheckCircle
     val CheckBoxOutline = Icons.Rounded.RadioButtonUnchecked
-    val Contrast = Icons.Rounded.Contrast
     val DarkMode = Icons.Rounded.DarkMode
     val DashBoard = Icons.Rounded.Dashboard
     val Decoder = Icons.Rounded.DeveloperBoard

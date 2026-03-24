@@ -21,6 +21,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +66,7 @@ import one.next.player.core.common.extensions.scanFileForContentUri
 import one.next.player.core.common.storagePermission
 import one.next.player.core.media.sync.MediaSynchronizer
 import one.next.player.core.model.ScreenOrientation
+import one.next.player.core.model.ThemeConfig
 import one.next.player.core.ui.theme.OnePlayerTheme
 import one.next.player.feature.player.extensions.OpenDocumentWithInitialUri
 import one.next.player.feature.player.extensions.registerForSuspendActivityResult
@@ -159,7 +161,14 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
 
-            OnePlayerTheme(shouldUseDarkTheme = true) {
+            OnePlayerTheme(
+                shouldUseDarkTheme = when (uiState.applicationPreferences.themeConfig) {
+                    ThemeConfig.SYSTEM -> isSystemInDarkTheme()
+                    ThemeConfig.OFF -> false
+                    ThemeConfig.ON -> true
+                },
+                shouldUseDynamicColor = uiState.applicationPreferences.shouldUseDynamicColors,
+            ) {
                 MediaPlayerScreen(
                     modifier = Modifier.semantics {
                         testTagsAsResourceId = true

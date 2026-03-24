@@ -146,7 +146,6 @@ class MainActivity : AppCompatActivity() {
 
             OnePlayerTheme(
                 shouldUseDarkTheme = shouldUseDarkTheme,
-                shouldUseHighContrastDarkTheme = shouldUseHighContrastDarkTheme(uiState = uiState),
                 shouldUseDynamicColor = shouldUseDynamicTheming(uiState = uiState),
             ) {
                 Surface(
@@ -394,14 +393,6 @@ fun shouldUseDarkTheme(
         ThemeConfig.OFF -> false
         ThemeConfig.ON -> true
     }
-}
-
-@Composable
-fun shouldUseHighContrastDarkTheme(
-    uiState: MainActivityUiState,
-): Boolean = when (uiState) {
-    MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> uiState.preferences.shouldUseHighContrastDarkTheme
 }
 
 @Composable

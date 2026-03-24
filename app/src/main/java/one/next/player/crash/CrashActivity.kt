@@ -71,7 +71,6 @@ import one.next.player.core.ui.designsystem.NextIcons
 import one.next.player.core.ui.theme.OnePlayerTheme
 import one.next.player.shouldUseDarkTheme
 import one.next.player.shouldUseDynamicTheming
-import one.next.player.shouldUseHighContrastDarkTheme
 
 @AndroidEntryPoint
 class CrashActivity : AppCompatActivity() {
@@ -141,7 +140,6 @@ class CrashActivity : AppCompatActivity() {
 
             OnePlayerTheme(
                 shouldUseDarkTheme = shouldUseDarkTheme,
-                shouldUseHighContrastDarkTheme = shouldUseHighContrastDarkTheme(uiState = uiState),
                 shouldUseDynamicColor = shouldUseDynamicTheming(uiState = uiState),
             ) {
                 val clipboard = LocalClipboard.current

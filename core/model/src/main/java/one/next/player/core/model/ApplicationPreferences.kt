@@ -8,7 +8,6 @@ data class ApplicationPreferences(
     val sortBy: Sort.By = Sort.By.TITLE,
     val sortOrder: Sort.Order = Sort.Order.ASCENDING,
     val themeConfig: ThemeConfig = ThemeConfig.SYSTEM,
-    val shouldUseHighContrastDarkTheme: Boolean = false,
     val shouldUseDynamicColors: Boolean = true,
     val shouldShowCloudTab: Boolean = true,
     val shouldNavigateHomeOnTitleLongPress: Boolean = false,

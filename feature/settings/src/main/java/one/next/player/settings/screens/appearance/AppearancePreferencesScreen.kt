@@ -105,14 +105,6 @@ private fun AppearancePreferencesContent(
                     icon = NextIcons.DarkMode,
                     onClick = { onEvent(AppearancePreferencesEvent.ShowDialog(AppearancePreferenceDialog.Theme)) },
                 )
-                PreferenceSwitch(
-                    title = stringResource(R.string.high_contrast_dark_theme),
-                    description = stringResource(R.string.high_contrast_dark_theme_desc),
-                    icon = NextIcons.Contrast,
-                    isChecked = uiState.preferences.shouldUseHighContrastDarkTheme,
-                    onClick = { onEvent(AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme) },
-                    isLastItem = !supportsDynamicTheming(),
-                )
                 if (supportsDynamicTheming()) {
                     PreferenceSwitch(
                         title = stringResource(id = R.string.dynamic_theme),
