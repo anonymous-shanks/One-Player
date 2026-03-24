@@ -352,8 +352,7 @@
     <string name="tab_cloud">雲端</string>
     <string name="tab_settings">設定</string>
     <string name="cloud_servers">雲端伺服器</string>
-    <string name="no_servers_configured">尚無設定的伺服器
-點擊 + 新增 WebDAV 或 SMB 伺服器</string>
+    <string name="no_servers_configured">暫無設定</string>
     <string name="add_server">新增伺服器</string>
     <string name="edit_server">編輯伺服器</string>
     <string name="delete_server">刪除伺服器</string>

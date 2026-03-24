@@ -106,6 +106,7 @@ fun MediaPickerRoute(
     onFolderClick: (folderPath: String, screenMode: MediaPickerScreenMode) -> Unit,
     onRecycleBinClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onNavigateUp: () -> Unit,
     onNavigateHome: () -> Unit,
 ) {
@@ -120,6 +121,7 @@ fun MediaPickerRoute(
         onFolderClick = onFolderClick,
         onRecycleBinClick = onRecycleBinClick,
         onSearchClick = onSearchClick,
+        onSettingsClick = onSettingsClick,
         onEvent = viewModel::onEvent,
     )
 }
@@ -145,6 +147,7 @@ internal fun MediaPickerScreen(
     onFolderClick: (String, MediaPickerScreenMode) -> Unit = { _, _ -> },
     onRecycleBinClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
     onEvent: (MediaPickerUiEvent) -> Unit = {},
 ) {
     val selectionManager = rememberSelectionManager()
@@ -272,6 +275,12 @@ internal fun MediaPickerScreen(
                                         contentDescription = stringResource(id = R.string.recycle_bin),
                                     )
                                 }
+                            }
+                            IconButton(onClick = onSettingsClick) {
+                                Icon(
+                                    imageVector = NextIcons.Settings,
+                                    contentDescription = stringResource(id = R.string.settings),
+                                )
                             }
                             IconButton(onClick = { shouldShowQuickSettingsDialog = true }) {
                                 Icon(

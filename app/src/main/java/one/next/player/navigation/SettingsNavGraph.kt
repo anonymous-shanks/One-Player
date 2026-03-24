@@ -43,7 +43,7 @@ fun NavGraphBuilder.settingsNavGraph(
         route = SETTINGS_ROUTE,
     ) {
         settingsScreen(
-            onNavigateUp = null,
+            onNavigateUp = navController::navigateUp,
             onItemClick = { setting ->
                 when (setting) {
                     Setting.APPEARANCE -> navController.navigateToAppearancePreferences()

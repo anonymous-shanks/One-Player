@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -66,12 +68,14 @@ import one.next.player.core.ui.extensions.withBottomFallback
 fun CloudHomeRoute(
     viewModel: CloudHomeViewModel = hiltViewModel(),
     onServerClick: (Long) -> Unit,
+    onSettingsClick: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     CloudHomeScreen(
         uiState = uiState,
         onServerClick = onServerClick,
+        onSettingsClick = onSettingsClick,
         onEvent = viewModel::onEvent,
     )
 }
@@ -81,6 +85,7 @@ fun CloudHomeRoute(
 internal fun CloudHomeScreen(
     uiState: CloudHomeUiState,
     onServerClick: (Long) -> Unit = {},
+    onSettingsClick: () -> Unit = {},
     onEvent: (CloudHomeEvent) -> Unit = {},
 ) {
     var shouldShowAddDialog by rememberSaveable { mutableStateOf(false) }
@@ -92,19 +97,30 @@ internal fun CloudHomeScreen(
             NextTopAppBar(
                 title = stringResource(R.string.cloud_servers),
                 fontWeight = FontWeight.Bold,
+                actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = NextIcons.Settings,
+                            contentDescription = stringResource(R.string.settings),
+                        )
+                    }
+                },
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { shouldShowAddDialog = true },
-                modifier = Modifier.testTag("cloud_add_server_fab"),
+                modifier = Modifier
+                    .padding(end = 16.dp, bottom = 16.dp)
+                    .testTag("cloud_add_server_fab"),
             ) {
                 Icon(
-                    imageVector = NextIcons.Cloud,
+                    imageVector = NextIcons.Add,
                     contentDescription = stringResource(R.string.add_server),
                 )
             }
         },
+        contentWindowInsets = WindowInsets.displayCutout,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) { innerPadding ->
         Column(

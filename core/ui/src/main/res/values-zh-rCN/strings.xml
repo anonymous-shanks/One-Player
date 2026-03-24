@@ -354,8 +354,7 @@
     <string name="tab_cloud">云端</string>
     <string name="tab_settings">设置</string>
     <string name="cloud_servers">云端服务器</string>
-    <string name="no_servers_configured">暂无配置的服务器
-点击 + 添加 WebDAV 或 SMB 服务器</string>
+    <string name="no_servers_configured">暂无配置</string>
     <string name="add_server">添加服务器</string>
     <string name="edit_server">编辑服务器</string>
     <string name="delete_server">删除服务器</string>

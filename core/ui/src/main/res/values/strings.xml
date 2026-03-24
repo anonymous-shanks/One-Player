@@ -358,8 +358,7 @@
     <string name="tab_cloud">Cloud</string>
     <string name="tab_settings">Settings</string>
     <string name="cloud_servers">Cloud servers</string>
-    <string name="no_servers_configured">No servers configured.
-Tap + to add a WebDAV or SMB server.</string>
+    <string name="no_servers_configured">No configuration</string>
     <string name="add_server">Add server</string>
     <string name="edit_server">Edit server</string>
     <string name="delete_server">Delete server</string>

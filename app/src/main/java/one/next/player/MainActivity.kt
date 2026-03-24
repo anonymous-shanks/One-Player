@@ -61,7 +61,6 @@ import one.next.player.core.ui.designsystem.NextIcons
 import one.next.player.core.ui.theme.OnePlayerTheme
 import one.next.player.navigation.CloudRootRoute
 import one.next.player.navigation.MediaRootRoute
-import one.next.player.navigation.SETTINGS_ROUTE
 import one.next.player.navigation.cloudNavGraph
 import one.next.player.navigation.mediaNavGraph
 import one.next.player.navigation.settingsNavGraph
@@ -202,7 +201,6 @@ class MainActivity : AppCompatActivity() {
                                         when (tab) {
                                             TopLevelTab.LOCAL -> destination.hasRoute<MediaRootRoute>()
                                             TopLevelTab.CLOUD -> destination.hasRoute<CloudRootRoute>()
-                                            TopLevelTab.SETTINGS -> destination.route == SETTINGS_ROUTE
                                         }
                                     } == true
 
@@ -222,12 +220,6 @@ class MainActivity : AppCompatActivity() {
                                                     launchSingleTop = true
                                                     restoreState = true
                                                 }
-
-                                                TopLevelTab.SETTINGS -> mainNavController.navigate(SETTINGS_ROUTE) {
-                                                    popUpTo(startDestinationId) { saveState = true }
-                                                    launchSingleTop = true
-                                                    restoreState = true
-                                                }
                                             }
                                         },
                                         icon = {
@@ -240,7 +232,6 @@ class MainActivity : AppCompatActivity() {
                                             when (tab) {
                                                 TopLevelTab.LOCAL -> "tab_local"
                                                 TopLevelTab.CLOUD -> "tab_cloud"
-                                                TopLevelTab.SETTINGS -> "tab_settings"
                                             },
                                         ),
                                         label = { Text(text = stringResource(tab.labelResId)) },
@@ -390,10 +381,6 @@ private enum class TopLevelTab(
     CLOUD(
         labelResId = R.string.tab_cloud,
         icon = NextIcons.Cloud,
-    ),
-    SETTINGS(
-        labelResId = R.string.tab_settings,
-        icon = NextIcons.Settings,
     ),
 }
 
