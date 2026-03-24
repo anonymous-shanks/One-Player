@@ -34,6 +34,8 @@ import one.next.player.core.common.Logger
 import one.next.player.core.common.NextDispatchers
 import one.next.player.core.common.di.ApplicationScope
 import one.next.player.core.common.extensions.VIDEO_COLLECTION_URI
+import one.next.player.core.common.extensions.canonicalPathOrSelf
+import one.next.player.core.common.extensions.excludeNoMediaPaths
 import one.next.player.core.common.extensions.getMediaFileContentUri
 import one.next.player.core.common.extensions.getStorageVolumes
 import one.next.player.core.common.extensions.isInsideNoMediaDirectory
@@ -84,7 +86,7 @@ class LocalMediaSynchronizer @Inject constructor(
     override suspend fun registerManualVideoPath(path: String) {
         if (path.isBlank()) return
 
-        val canonicalPath = runCatching { File(path).canonicalPath }.getOrDefault(path)
+        val canonicalPath = path.canonicalPathOrSelf()
         val preferences = appPreferencesDataSource.preferences.first()
         if (!preferences.shouldIgnoreNoMediaFiles && File(canonicalPath).isInsideNoMediaDirectory()) {
             Logger.info(TAG, "registerManualVideoPath skippedHiddenPath=$canonicalPath")
@@ -121,9 +123,7 @@ class LocalMediaSynchronizer @Inject constructor(
             val pendingManualPaths = if (it.shouldIgnoreNoMediaFiles) {
                 it.pendingExternalVideoPaths
             } else {
-                it.pendingExternalVideoPaths.filterNot { path ->
-                    File(path).isInsideNoMediaDirectory()
-                }
+                it.pendingExternalVideoPaths.excludeNoMediaPaths()
             }
             it.copy(
                 manualVideoPaths = (it.manualVideoPaths + pendingManualPaths).distinct(),
@@ -136,9 +136,7 @@ class LocalMediaSynchronizer @Inject constructor(
         val preferences = appPreferencesDataSource.preferences.first()
         if (preferences.shouldIgnoreNoMediaFiles) return
 
-        val visibleManualPaths = preferences.manualVideoPaths.filterNot { path ->
-            File(path).isInsideNoMediaDirectory()
-        }
+        val visibleManualPaths = preferences.manualVideoPaths.excludeNoMediaPaths()
         if (visibleManualPaths.size == preferences.manualVideoPaths.size) return
 
         Logger.info(
@@ -185,8 +183,10 @@ class LocalMediaSynchronizer @Inject constructor(
         shouldIgnoreNoMediaFiles: Boolean,
     ): List<MediaVideo> = withContext(dispatcher) {
         val hasAllFilesAccess = hasManageExternalStorageAccess()
-        val effectiveManualPaths = manuallyDiscoveredPaths.filterTo(linkedSetOf()) { path ->
-            shouldIgnoreNoMediaFiles || !File(path).isInsideNoMediaDirectory()
+        val effectiveManualPaths = if (shouldIgnoreNoMediaFiles) {
+            manuallyDiscoveredPaths
+        } else {
+            manuallyDiscoveredPaths.excludeNoMediaPaths().toSet()
         }
         if (effectiveManualPaths.isNotEmpty()) {
             Logger.info(TAG, "mergeVisibleMedia manualPaths=${effectiveManualPaths.size}")

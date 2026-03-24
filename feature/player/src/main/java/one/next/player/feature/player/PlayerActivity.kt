@@ -60,6 +60,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import one.next.player.core.common.Logger
 import one.next.player.core.common.extensions.applyPrivacyProtection
+import one.next.player.core.common.extensions.canonicalPathOrSelf
 import one.next.player.core.common.extensions.getMediaContentUri
 import one.next.player.core.common.extensions.resolvePrivacyPreviewScrim
 import one.next.player.core.common.extensions.scanFileForContentUri
@@ -78,32 +79,30 @@ import one.next.player.feature.player.service.stopPlayerSession
 import one.next.player.feature.player.utils.PlayerApi
 
 internal data class PlaybackPlaylist(
-    val items: MutableList<String>,
+    val items: List<String>,
     val currentIndex: Int,
 )
 
-internal fun buildPlaybackPlaylist(
-    playlistVideos: List<one.next.player.core.model.Video>,
-    sourceUriString: String,
-    playbackUriString: String,
-    currentPath: String?,
-): PlaybackPlaylist {
-    val normalizedPlaybackUri = playbackUriString
-    val playlistItems = playlistVideos
-        .map { video -> video.uriString }
-        .toMutableList()
+internal data class PlaybackTarget(
+    val sourceUriString: String,
+    val playbackUriString: String,
+    val currentPath: String?,
+)
 
+internal fun buildPlaybackPlaylistFromItems(
+    playlistItems: List<String>,
+    playbackTarget: PlaybackTarget,
+): PlaybackPlaylist {
     if (playlistItems.isEmpty()) {
         return PlaybackPlaylist(
-            items = mutableListOf(normalizedPlaybackUri),
+            items = listOf(playbackTarget.playbackUriString),
             currentIndex = 0,
         )
     }
 
-    val currentIndex = playlistVideos.indexOfFirst { video ->
-        video.uriString == normalizedPlaybackUri ||
-            video.uriString == sourceUriString ||
-            (currentPath != null && video.path == currentPath)
+    val currentIndex = playlistItems.indexOfFirst { uriString ->
+        uriString == playbackTarget.playbackUriString ||
+            uriString == playbackTarget.sourceUriString
     }
     if (currentIndex >= 0) {
         return PlaybackPlaylist(
@@ -112,10 +111,38 @@ internal fun buildPlaybackPlaylist(
         )
     }
 
-    playlistItems.add(index = 0, element = normalizedPlaybackUri)
     return PlaybackPlaylist(
-        items = playlistItems,
+        items = listOf(playbackTarget.playbackUriString) + playlistItems,
         currentIndex = 0,
+    )
+}
+
+internal fun buildPlaybackPlaylist(
+    playlistVideos: List<one.next.player.core.model.Video>,
+    playbackTarget: PlaybackTarget,
+): PlaybackPlaylist {
+    if (playlistVideos.isEmpty()) {
+        return PlaybackPlaylist(
+            items = listOf(playbackTarget.playbackUriString),
+            currentIndex = 0,
+        )
+    }
+
+    val currentIndex = playlistVideos.indexOfFirst { video ->
+        video.uriString == playbackTarget.playbackUriString ||
+            video.uriString == playbackTarget.sourceUriString ||
+            (playbackTarget.currentPath != null && video.path == playbackTarget.currentPath)
+    }
+    if (currentIndex >= 0) {
+        return PlaybackPlaylist(
+            items = playlistVideos.map { video -> video.uriString },
+            currentIndex = currentIndex,
+        )
+    }
+
+    return buildPlaybackPlaylistFromItems(
+        playlistItems = playlistVideos.map { video -> video.uriString },
+        playbackTarget = playbackTarget,
     )
 }
 
@@ -359,13 +386,24 @@ class PlayerActivity : AppCompatActivity() {
         val t1 = System.currentTimeMillis()
         Logger.info(TAG, "playVideo resolveUri=${t1 - t0}ms resolved=$playbackUri")
 
-        val folderPlaylist = viewModel.getPlaylistFromUri(playbackUri)
-        val playbackPlaylist = buildPlaybackPlaylist(
-            playlistVideos = folderPlaylist,
+        val playbackTarget = PlaybackTarget(
             sourceUriString = uri.toString(),
             playbackUriString = playbackUri.toString(),
             currentPath = playbackUri.path,
         )
+        val apiPlaylist = playerApi.getPlaylist()
+        val playbackPlaylist = if (apiPlaylist.isNotEmpty()) {
+            buildPlaybackPlaylistFromItems(
+                playlistItems = apiPlaylist,
+                playbackTarget = playbackTarget,
+            )
+        } else {
+            val folderPlaylist = viewModel.getPlaylistFromUri(playbackUri)
+            buildPlaybackPlaylist(
+                playlistVideos = folderPlaylist,
+                playbackTarget = playbackTarget,
+            )
+        }
         val playlist = playbackPlaylist.items
         val t2 = System.currentTimeMillis()
         Logger.info(TAG, "playVideo playlist=${t2 - t1}ms size=${playlist.size}")
@@ -422,7 +460,7 @@ class PlayerActivity : AppCompatActivity() {
         // file:// 已有路径，跳过 MediaStore 查询避免 ContentResolver 阻塞
         if (uri.scheme == "file") {
             val rawPath = uri.path ?: return uri
-            val canonicalPath = runCatching { File(rawPath).canonicalPath }.getOrDefault(rawPath)
+            val canonicalPath = rawPath.canonicalPathOrSelf()
             Logger.info(TAG, "resolveUri canonical=${System.currentTimeMillis() - t0}ms path=$canonicalPath")
 
             if (File(canonicalPath).exists()) {

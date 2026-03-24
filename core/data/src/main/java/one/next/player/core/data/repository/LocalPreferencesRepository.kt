@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import one.next.player.core.common.di.ApplicationScope
+import one.next.player.core.common.extensions.excludeNoMediaPaths
 import one.next.player.core.common.hasManageExternalStorageAccess
 import one.next.player.core.datastore.datasource.AppPreferencesDataSource
 import one.next.player.core.datastore.datasource.PlayerPreferencesDataSource
@@ -69,12 +70,33 @@ class LocalPreferencesRepository @Inject constructor(
     }
 
     private fun sanitizeApplicationPreferences(preferences: ApplicationPreferences): ApplicationPreferences {
-        if (hasManageExternalStorageAccess()) return preferences
-        if (!preferences.shouldIgnoreNoMediaFiles && !preferences.isRecycleBinEnabled) return preferences
+        val sanitizedPreferences = if (!hasManageExternalStorageAccess()) {
+            if (!preferences.shouldIgnoreNoMediaFiles && !preferences.isRecycleBinEnabled) {
+                preferences
+            } else {
+                preferences.copy(
+                    shouldIgnoreNoMediaFiles = false,
+                    isRecycleBinEnabled = false,
+                )
+            }
+        } else {
+            preferences
+        }
+        if (sanitizedPreferences.shouldIgnoreNoMediaFiles) {
+            return sanitizedPreferences
+        }
 
-        return preferences.copy(
-            shouldIgnoreNoMediaFiles = false,
-            isRecycleBinEnabled = false,
+        val visibleManualPaths = sanitizedPreferences.manualVideoPaths.excludeNoMediaPaths()
+        val visiblePendingPaths = sanitizedPreferences.pendingExternalVideoPaths.excludeNoMediaPaths()
+        if (visibleManualPaths.size == sanitizedPreferences.manualVideoPaths.size &&
+            visiblePendingPaths.size == sanitizedPreferences.pendingExternalVideoPaths.size
+        ) {
+            return sanitizedPreferences
+        }
+
+        return sanitizedPreferences.copy(
+            manualVideoPaths = visibleManualPaths,
+            pendingExternalVideoPaths = visiblePendingPaths,
         )
     }
 }

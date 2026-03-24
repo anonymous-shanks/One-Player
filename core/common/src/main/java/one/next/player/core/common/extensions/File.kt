@@ -65,6 +65,12 @@ fun File.deleteFiles() {
     }
 }
 
+fun String.canonicalPathOrSelf(): String = runCatching {
+    File(this).canonicalPath
+}.getOrDefault(this)
+
+fun String.isInsideNoMediaDirectory(): Boolean = File(this).isInsideNoMediaDirectory()
+
 fun File.isInsideNoMediaDirectory(): Boolean {
     var currentDirectory = parentFile
     while (currentDirectory != null && currentDirectory.exists()) {
@@ -74,6 +80,10 @@ fun File.isInsideNoMediaDirectory(): Boolean {
         currentDirectory = currentDirectory.parentFile
     }
     return false
+}
+
+fun Iterable<String>.excludeNoMediaPaths(): List<String> = filterNot { path ->
+    path.isInsideNoMediaDirectory()
 }
 
 val File.prettyName: String

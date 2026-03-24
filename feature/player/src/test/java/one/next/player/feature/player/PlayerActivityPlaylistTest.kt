@@ -25,9 +25,11 @@ class PlayerActivityPlaylistTest {
 
         val result = buildPlaybackPlaylist(
             playlistVideos = playlistVideos,
-            sourceUriString = "file:///storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
-            playbackUriString = "file:///storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
-            currentPath = "/storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
+            playbackTarget = PlaybackTarget(
+                sourceUriString = "file:///storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
+                playbackUriString = "file:///storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
+                currentPath = "/storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
+            ),
         )
 
         assertEquals(3, result.items.size)
@@ -46,9 +48,11 @@ class PlayerActivityPlaylistTest {
 
         val result = buildPlaybackPlaylist(
             playlistVideos = playlistVideos,
-            sourceUriString = "file:///storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
-            playbackUriString = "file:///storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
-            currentPath = "/storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
+            playbackTarget = PlaybackTarget(
+                sourceUriString = "file:///storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
+                playbackUriString = "file:///storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
+                currentPath = "/storage/emulated/0/OnePlayerNomedia/nomedia-a.mp4",
+            ),
         )
 
         assertEquals(
@@ -76,9 +80,11 @@ class PlayerActivityPlaylistTest {
 
         val result = buildPlaybackPlaylist(
             playlistVideos = playlistVideos,
-            sourceUriString = "file:///storage/emulated/0/Movies/visible-a.mp4",
-            playbackUriString = "file:///storage/emulated/0/Movies/visible-a.mp4",
-            currentPath = "/storage/emulated/0/Movies/visible-a.mp4",
+            playbackTarget = PlaybackTarget(
+                sourceUriString = "file:///storage/emulated/0/Movies/visible-a.mp4",
+                playbackUriString = "file:///storage/emulated/0/Movies/visible-a.mp4",
+                currentPath = "/storage/emulated/0/Movies/visible-a.mp4",
+            ),
         )
 
         assertEquals(2, result.items.size)

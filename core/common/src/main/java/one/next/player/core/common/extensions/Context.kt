@@ -141,7 +141,7 @@ fun Context.getFilenameFromContentUri(uri: Uri): String? {
 fun Context.getMediaContentUri(uri: Uri): Uri? {
     val rawPath = getPath(uri) ?: return null
     // 解析符号链接，将 /sdcard 等别名映射到 /storage/emulated/0
-    val path = runCatching { File(rawPath).canonicalPath }.getOrDefault(rawPath)
+    val path = rawPath.canonicalPathOrSelf()
 
     val column = MediaStore.Video.Media._ID
     val projection = arrayOf(column)

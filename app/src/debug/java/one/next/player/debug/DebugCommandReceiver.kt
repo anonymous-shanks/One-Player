@@ -7,10 +7,8 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import java.io.File
 import kotlinx.coroutines.runBlocking
 import one.next.player.core.common.Logger
-import one.next.player.core.common.extensions.isInsideNoMediaDirectory
 import one.next.player.core.data.repository.PreferencesRepository
 import one.next.player.core.data.repository.RemoteServerRepository
 import one.next.player.core.media.sync.MediaSynchronizer
@@ -59,20 +57,10 @@ class DebugCommandReceiver : BroadcastReceiver() {
 
         val shouldIgnoreNoMediaFiles = intent.getBooleanExtra(EXTRA_ENABLED, false)
         preferencesRepository.updateApplicationPreferences {
-            if (shouldIgnoreNoMediaFiles) {
-                it.copy(shouldIgnoreNoMediaFiles = true)
+            if (it.shouldIgnoreNoMediaFiles == shouldIgnoreNoMediaFiles) {
+                it
             } else {
-                val visibleManualPaths = it.manualVideoPaths.filterNot { path ->
-                    File(path).isInsideNoMediaDirectory()
-                }
-                val visiblePendingPaths = it.pendingExternalVideoPaths.filterNot { path ->
-                    File(path).isInsideNoMediaDirectory()
-                }
-                it.copy(
-                    shouldIgnoreNoMediaFiles = false,
-                    manualVideoPaths = visibleManualPaths,
-                    pendingExternalVideoPaths = visiblePendingPaths,
-                )
+                it.copy(shouldIgnoreNoMediaFiles = shouldIgnoreNoMediaFiles)
             }
         }
         Logger.info(TAG, "shouldIgnoreNoMediaFiles set to $shouldIgnoreNoMediaFiles")
