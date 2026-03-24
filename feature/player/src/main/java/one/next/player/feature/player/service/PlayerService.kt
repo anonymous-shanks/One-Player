@@ -299,13 +299,17 @@ class PlayerService : MediaSessionService() {
                     playerSpecificSubtitleSpeed = metadata.subtitleSpeed ?: 1f
                 }
 
+                val resumePositionMs = metadata.positionMs?.takeIf { playerPreferences.resume == Resume.YES }
                 if (metadata.isApproximateSeekEnabled) {
-                    Logger.info(TAG, "Skip resume seek for approximate-seek media item=${mediaItem.mediaId}")
                     preloadMkvCues(mediaItem)
+                    resumePositionMs?.takeIf { it > 0L }?.let {
+                        Logger.info(TAG, "Resume approximate-seek media item=${mediaItem.mediaId} position=$it")
+                        promoteCurrentItemToPreciseSeek(it)
+                    }
                     return
                 }
 
-                metadata.positionMs?.takeIf { playerPreferences.resume == Resume.YES }?.let {
+                resumePositionMs?.let {
                     mediaSession?.player?.seekTo(it)
                 }
             }
