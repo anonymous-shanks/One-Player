@@ -9,6 +9,7 @@ import android.media.audiofx.LoudnessEnhancer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import androidx.core.net.toFile
 import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
@@ -70,6 +71,8 @@ import io.github.peerless2012.ass.media.kt.withAssSupport
 import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
 import io.github.peerless2012.ass.media.type.AssRenderType
 import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
+import java.io.DataOutputStream
 import java.io.File
 import java.io.InputStream
 import java.util.concurrent.ConcurrentHashMap
@@ -81,6 +84,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
@@ -138,6 +143,8 @@ class PlayerService : MediaSessionService() {
     companion object {
         private const val TAG = "PlayerService"
         private const val FAST_SEEK_MIN_DELTA_MS = 2_000L
+        private const val STARTUP_PRECISE_RESUME_THRESHOLD_MS = 10_000L
+        private const val MKV_CUES_CACHE_MAGIC = 0x4E505145
         private val ISO_639_2T_TO_1 = mapOf(
             "zho" to "zh", "chi" to "zh",
             "eng" to "en",
@@ -195,6 +202,7 @@ class PlayerService : MediaSessionService() {
     private var isPendingExternalSubAutoSelect = false
     private var assHandler: AssHandler? = null
     private var pendingPreciseSeekPromotionJob: Job? = null
+    private var pendingStartupPreciseResumeToken: String? = null
     private lateinit var fastStartMediaSourceFactory: DefaultMediaSourceFactory
     private lateinit var preciseSeekMediaSourceFactory: DefaultMediaSourceFactory
     private var sessionLoadErrorHandlingPolicy: LoadErrorHandlingPolicy? = null
@@ -204,6 +212,7 @@ class PlayerService : MediaSessionService() {
 
     // mediaId 对应预解析 IndexSeekMap
     private val mkvSeekMapCache = ConcurrentHashMap<String, androidx.media3.extractor.SeekMap>()
+    private val mkvCueParseJobs = ConcurrentHashMap<String, Deferred<androidx.media3.extractor.SeekMap?>>()
 
     private var startupTimestamp = 0L
     private val startupAnalyticsListener = object : AnalyticsListener {
@@ -290,6 +299,7 @@ class PlayerService : MediaSessionService() {
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) return
             pendingPreciseSeekPromotionJob?.cancel()
             pendingPreciseSeekPromotionJob = null
+            pendingStartupPreciseResumeToken = null
             isMediaItemReady = false
             isPendingExternalSubAutoSelect = false
             mediaItem?.mediaMetadata?.let { metadata ->
@@ -301,10 +311,22 @@ class PlayerService : MediaSessionService() {
 
                 val resumePositionMs = metadata.positionMs?.takeIf { playerPreferences.resume == Resume.YES }
                 if (metadata.isApproximateSeekEnabled) {
-                    preloadMkvCues(mediaItem)
-                    resumePositionMs?.takeIf { it > 0L }?.let {
-                        Logger.info(TAG, "Resume approximate-seek media item=${mediaItem.mediaId} position=$it")
-                        promoteCurrentItemToPreciseSeek(it)
+                    val restoredSeekMap = restoreCachedMkvSeekMap(mediaItem)
+                    if (restoredSeekMap != null) {
+                        mkvSeekMapCache[mediaItem.mediaId] = restoredSeekMap
+                    }
+                    scheduleMkvCueCache(mediaItem)
+
+                    if (restoredSeekMap != null) {
+                        resumePositionMs?.takeIf { it >= STARTUP_PRECISE_RESUME_THRESHOLD_MS }?.let {
+                            Logger.info(TAG, "Resume cached precise-seek media item=${mediaItem.mediaId} position=$it")
+                            promoteCurrentItemToPreciseSeek(it)
+                        }
+                    } else {
+                        resumePositionMs?.takeIf { it > 0L }?.let {
+                            Logger.info(TAG, "Resume deferred precise-seek media item=${mediaItem.mediaId} position=$it")
+                            pendingStartupPreciseResumeToken = mediaItem.mediaId
+                        }
                     }
                     return
                 }
@@ -499,6 +521,7 @@ class PlayerService : MediaSessionService() {
                     videoRotation = rotation,
                 ),
             )
+            continueDeferredStartupPreciseResume(currentMediaItem)
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -1180,6 +1203,7 @@ class PlayerService : MediaSessionService() {
             mediaSession = null
         }
         subtitleCacheDir.deleteFiles()
+        mkvCueParseJobs.clear()
         mediaParserRetried.clear()
         serviceScope.cancel()
     }
@@ -1427,32 +1451,157 @@ class PlayerService : MediaSessionService() {
     }
 
     // 后台预解析 MKV Cues，为后续 seek 构建快速 SeekMap
-    private fun preloadMkvCues(mediaItem: MediaItem) {
+    private fun scheduleMkvCueCache(mediaItem: MediaItem): Deferred<androidx.media3.extractor.SeekMap?> {
         val mediaId = mediaItem.mediaId
-        if (mkvSeekMapCache.containsKey(mediaId)) return
+        mkvSeekMapCache[mediaId]?.let { return CompletableDeferred(it) }
+        mkvCueParseJobs[mediaId]?.let { return it }
 
-        val durationMs = mediaItem.mediaMetadata.durationMs ?: return
+        val restoredSeekMap = restoreCachedMkvSeekMap(mediaItem)
+        if (restoredSeekMap != null) {
+            mkvSeekMapCache[mediaId] = restoredSeekMap
+            return CompletableDeferred(restoredSeekMap)
+        }
+
+        val durationMs = mediaItem.mediaMetadata.durationMs
+        if (durationMs == null) return CompletableDeferred(null)
         val uri = Uri.parse(mediaId)
 
-        serviceScope.launch(Dispatchers.IO) {
+        val parseJob = serviceScope.async(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
             val cuePoints = MkvCuesParser.parse(applicationContext, uri)
             val elapsed = System.currentTimeMillis() - startTime
 
             if (cuePoints == null) {
                 Logger.debug(TAG, "MKV Cues pre-parse returned null for $mediaId (${elapsed}ms)")
-                return@launch
+                return@async null
             }
 
             val durationUs = durationMs * 1_000L
             val seekMap = buildSeekMapFromCues(cuePoints, durationUs)
             mkvSeekMapCache[mediaId] = seekMap
+            persistMkvSeekMap(uri, cuePoints, durationUs)
             Logger.info(
                 TAG,
                 "MKV Cues pre-parsed: ${cuePoints.size} cue points in ${elapsed}ms for $mediaId",
             )
+            seekMap
+        }
+        parseJob.invokeOnCompletion {
+            mkvCueParseJobs.remove(mediaId, parseJob)
+        }
+        mkvCueParseJobs[mediaId] = parseJob
+        return parseJob
+    }
+
+    private fun continueDeferredStartupPreciseResume(currentMediaItem: MediaItem) {
+        val player = mediaSession?.player ?: return
+        val mediaId = currentMediaItem.mediaId
+        if (pendingStartupPreciseResumeToken != mediaId) return
+        if (!currentMediaItem.mediaMetadata.isApproximateSeekEnabled) {
+            pendingStartupPreciseResumeToken = null
+            return
+        }
+
+        val targetPosition = currentMediaItem.mediaMetadata.positionMs ?: return
+        if (targetPosition < STARTUP_PRECISE_RESUME_THRESHOLD_MS) {
+            pendingStartupPreciseResumeToken = null
+            return
+        }
+        if (player.currentPosition >= targetPosition - 1_000L) {
+            pendingStartupPreciseResumeToken = null
+            return
+        }
+
+        pendingPreciseSeekPromotionJob?.cancel()
+        pendingPreciseSeekPromotionJob = serviceScope.launch(Dispatchers.IO) {
+            val seekMap = mkvSeekMapCache[mediaId]
+                ?: restoreCachedMkvSeekMap(currentMediaItem)
+                ?: scheduleMkvCueCache(currentMediaItem).await()
+                ?: return@launch
+
+            mkvSeekMapCache[mediaId] = seekMap
+            withContext(Dispatchers.Main) {
+                val currentPlayer = mediaSession?.player ?: return@withContext
+                val current = currentPlayer.currentMediaItem ?: return@withContext
+                if (current.mediaId != mediaId) return@withContext
+                if (pendingStartupPreciseResumeToken != mediaId) return@withContext
+                pendingStartupPreciseResumeToken = null
+                Logger.info(TAG, "Resume deferred precise-seek media item=$mediaId position=$targetPosition")
+                promoteCurrentItemToPreciseSeek(targetPosition)
+            }
         }
     }
+
+    private fun mkvCueCacheFile(uri: Uri): File? {
+        val path = runCatching {
+            when (uri.scheme) {
+                ContentResolver.SCHEME_FILE -> uri.toFile().absolutePath
+                ContentResolver.SCHEME_CONTENT -> getPath(uri)
+                else -> null
+            }
+        }.getOrNull() ?: return null
+        val sourceFile = File(path)
+        if (!sourceFile.exists()) return null
+        val cacheKey = sourceFile.absolutePath.hashCode().toUInt().toString(16)
+        val cacheDir = File(cacheDir, "mkv-cues")
+        if (!cacheDir.exists()) cacheDir.mkdirs()
+        return File(cacheDir, "mkv-cues-$cacheKey.bin")
+    }
+
+    private fun persistMkvSeekMap(uri: Uri, cuePoints: List<one.next.player.feature.player.engine.media3.MkvCuePoint>, durationUs: Long) {
+        val sourceFile = resolveLocalFile(uri) ?: return
+        val cacheFile = mkvCueCacheFile(uri) ?: return
+        runCatching {
+            DataOutputStream(cacheFile.outputStream().buffered()).use { output ->
+                output.writeInt(MKV_CUES_CACHE_MAGIC)
+                output.writeLong(sourceFile.length())
+                output.writeLong(sourceFile.lastModified())
+                output.writeLong(durationUs)
+                output.writeInt(cuePoints.size)
+                cuePoints.forEach { cuePoint ->
+                    output.writeLong(cuePoint.timeUs)
+                    output.writeLong(cuePoint.clusterPosition)
+                }
+            }
+        }.onFailure {
+            cacheFile.delete()
+            Logger.debug(TAG, "Failed to persist MKV cue cache for $uri")
+        }
+    }
+
+    private fun restoreCachedMkvSeekMap(mediaItem: MediaItem): androidx.media3.extractor.SeekMap? {
+        val uri = Uri.parse(mediaItem.mediaId)
+        val sourceFile = resolveLocalFile(uri) ?: return null
+        val cacheFile = mkvCueCacheFile(uri) ?: return null
+        if (!cacheFile.exists()) return null
+
+        return runCatching {
+            DataInputStream(cacheFile.inputStream().buffered()).use { input ->
+                val magic = input.readInt()
+                if (magic != MKV_CUES_CACHE_MAGIC) return@runCatching null
+                val fileSize = input.readLong()
+                val lastModified = input.readLong()
+                if (fileSize != sourceFile.length() || lastModified != sourceFile.lastModified()) {
+                    return@runCatching null
+                }
+                val durationUs = input.readLong()
+                val count = input.readInt()
+                val cuePoints = List(count) {
+                    one.next.player.feature.player.engine.media3.MkvCuePoint(
+                        timeUs = input.readLong(),
+                        clusterPosition = input.readLong(),
+                    )
+                }
+                buildSeekMapFromCues(cuePoints, durationUs)
+            }
+        }.getOrNull()
+    }
+
+    private fun resolveLocalFile(uri: Uri): File? = when (uri.scheme) {
+        ContentResolver.SCHEME_FILE -> runCatching { uri.toFile() }.getOrNull()
+        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File)
+        else -> null
+    }?.takeIf(File::exists)
 
     // 创建注入了预解析 SeekMap 的 ExtractorsFactory
     private fun createSeekMapInjectedExtractorsFactory(
