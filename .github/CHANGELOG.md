@@ -1,8 +1,8 @@
-- 优化长按倍速提示样式、位置与显示时机
+- 修复竖屏模式下长按倍速提示被打孔屏遮挡的问题
 
 <details>
 <summary>English Version</summary>
 
-- Refine the long press speed overlay style, position, and display timing
+- Fix long press speed overlay being obscured by display cutout in portrait mode
 
 </details>

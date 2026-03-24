@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -312,11 +313,11 @@ internal fun MediaPlayerScreen(
                     .fillMaxSize()
                     .background(Color.Black),
             ) {
-                val displayCutoutTopPadding = WindowInsets.displayCutout
+                val safeDrawingTopPadding = WindowInsets.safeDrawing
                     .asPaddingValues()
                     .calculateTopPadding()
                 val longPressOverlayTopPadding = maxOf(
-                    displayCutoutTopPadding,
+                    safeDrawingTopPadding,
                     pictureInPictureState.videoViewRect
                         ?.top
                         ?.let { with(LocalDensity.current) { it.toDp() } }
