@@ -77,6 +77,48 @@ import one.next.player.feature.player.service.addSubtitleTrack
 import one.next.player.feature.player.service.stopPlayerSession
 import one.next.player.feature.player.utils.PlayerApi
 
+internal data class PlaybackPlaylist(
+    val items: MutableList<String>,
+    val currentIndex: Int,
+)
+
+internal fun buildPlaybackPlaylist(
+    playlistVideos: List<one.next.player.core.model.Video>,
+    sourceUriString: String,
+    playbackUriString: String,
+    currentPath: String?,
+): PlaybackPlaylist {
+    val normalizedPlaybackUri = playbackUriString
+    val playlistItems = playlistVideos
+        .map { video -> video.uriString }
+        .toMutableList()
+
+    if (playlistItems.isEmpty()) {
+        return PlaybackPlaylist(
+            items = mutableListOf(normalizedPlaybackUri),
+            currentIndex = 0,
+        )
+    }
+
+    val currentIndex = playlistVideos.indexOfFirst { video ->
+        video.uriString == normalizedPlaybackUri ||
+            video.uriString == sourceUriString ||
+            (currentPath != null && video.path == currentPath)
+    }
+    if (currentIndex >= 0) {
+        return PlaybackPlaylist(
+            items = playlistItems,
+            currentIndex = currentIndex,
+        )
+    }
+
+    playlistItems.add(index = 0, element = normalizedPlaybackUri)
+    return PlaybackPlaylist(
+        items = playlistItems,
+        currentIndex = 0,
+    )
+}
+
 @SuppressLint("UnsafeOptInUsageError")
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
@@ -317,26 +359,18 @@ class PlayerActivity : AppCompatActivity() {
         val t1 = System.currentTimeMillis()
         Logger.info(TAG, "playVideo resolveUri=${t1 - t0}ms resolved=$playbackUri")
 
-        val shouldBuildPlaylist = uri.scheme != "file" && playbackUri.scheme != "file"
-        val playlist = playerApi.getPlaylist().takeIf { it.isNotEmpty() }
-            ?: if (shouldBuildPlaylist) {
-                viewModel.getPlaylistFromUri(playbackUri)
-                    .map { it.uriString }
-                    .toMutableList()
-                    .apply {
-                        if (!contains(playbackUri.toString())) {
-                            add(index = 0, element = playbackUri.toString())
-                        }
-                    }
-            } else {
-                mutableListOf(playbackUri.toString())
-            }
+        val folderPlaylist = viewModel.getPlaylistFromUri(playbackUri)
+        val playbackPlaylist = buildPlaybackPlaylist(
+            playlistVideos = folderPlaylist,
+            sourceUriString = uri.toString(),
+            playbackUriString = playbackUri.toString(),
+            currentPath = playbackUri.path,
+        )
+        val playlist = playbackPlaylist.items
         val t2 = System.currentTimeMillis()
         Logger.info(TAG, "playVideo playlist=${t2 - t1}ms size=${playlist.size}")
 
-        val mediaItemIndexToPlay = playlist.indexOfFirst {
-            it == playbackUri.toString()
-        }.takeIf { it >= 0 } ?: 0
+        val mediaItemIndexToPlay = playbackPlaylist.currentIndex
 
         val mediaItems = playlist.mapIndexed { index, uri ->
             MediaItem.Builder().apply {

@@ -65,5 +65,16 @@ fun File.deleteFiles() {
     }
 }
 
+fun File.isInsideNoMediaDirectory(): Boolean {
+    var currentDirectory = parentFile
+    while (currentDirectory != null && currentDirectory.exists()) {
+        if (File(currentDirectory, ".nomedia").exists()) {
+            return true
+        }
+        currentDirectory = currentDirectory.parentFile
+    }
+    return false
+}
+
 val File.prettyName: String
     get() = this.name.takeIf { this.path != Environment.getExternalStorageDirectory()?.path } ?: "Internal Storage"
