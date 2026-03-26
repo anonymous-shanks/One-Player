@@ -26,7 +26,8 @@ import one.next.player.core.ui.components.TopAppBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScriptPreferencesScreen(
-    onNavigateUp: () -> Unit,
+      onNavigateUp: () -> Unit,
+      onManageScriptsClick: () -> Unit, 
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("lua_script_prefs", Context.MODE_PRIVATE)
@@ -91,7 +92,7 @@ fun ScriptPreferencesScreen(
                 title = "Manage Lua Scripts",
                 subtitle = "Tap to enable or disable specific scripts",
                 onClick = {
-                    // TODO: Navigate to the script checklist screen
+                    onManageScriptsClick
                 }
             )
             
@@ -100,7 +101,7 @@ fun ScriptPreferencesScreen(
                 title = "Custom Lua",
                 subtitle = "Create and manage custom Lua buttons",
                 onClick = {
-                    // TODO: Implement custom buttons later
+                    // TODO: Navigate to the script checklist screen
                 }
             )
         }
