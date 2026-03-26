@@ -53,7 +53,6 @@ fun SettingsScreen(
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
-    // resolve 标题、描述和子设置项文本，全部用于搜索匹配
     val resolvedRows = SettingRow.entries.map { row ->
         val subTexts = row.subSettingResIds.map { stringResource(it) }
         ResolvedSettingRow(
@@ -220,7 +219,6 @@ enum class Setting {
     ABOUT,
 }
 
-// 子设置项的字符串资源 ID，用于搜索索引
 internal enum class SettingRow(
     val titleResId: Int,
     val descriptionResId: Int,
@@ -359,7 +357,7 @@ internal enum class SettingRow(
     SCRIPTS(
         titleResId = R.string.scripts_name,
         descriptionResId = R.string.scripts_description,
-        icon = NextIcons.Script, 
+        icon = NextIcons.DeveloperBoard,
         setting = Setting.SCRIPTS,
     ),
     ABOUT(
