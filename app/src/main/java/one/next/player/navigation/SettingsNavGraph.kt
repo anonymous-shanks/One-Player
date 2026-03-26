@@ -59,6 +59,7 @@ fun NavGraphBuilder.settingsNavGraph(
                     Setting.SUBTITLE -> navController.navigateToSubtitlePreferences()
                     Setting.PRIVACY -> navController.navigateToPrivacyPreferences()
                     Setting.GENERAL -> navController.navigateToGeneralPreferences()
+                    Setting.SCRIPTS -> navController.navigateToScriptPreferences()
                     Setting.ABOUT -> navController.navigateToAboutPreferences()
                 }
             },
@@ -96,6 +97,13 @@ fun NavGraphBuilder.settingsNavGraph(
             onNavigateUp = navController::navigateUp,
         )
         generalPreferencesScreen(
+            onNavigateUp = navController::navigateUp,
+        )
+        scriptPreferencesScreen(
+            onNavigateUp = navController::navigateUp,
+            onManageScriptsClick = navController::navigateToManageScripts
+        )
+        manageScriptsScreen(
             onNavigateUp = navController::navigateUp,
         )
         aboutPreferencesScreen(
