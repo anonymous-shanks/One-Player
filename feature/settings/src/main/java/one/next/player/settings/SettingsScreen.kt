@@ -357,7 +357,7 @@ internal enum class SettingRow(
     SCRIPTS(
         titleResId = R.string.scripts_name,
         descriptionResId = R.string.scripts_description,
-        icon = NextIcons.DeveloperBoard,
+        icon = NextIcons.SmartButton, // Yeh icon ekdum perfect kaam karega
         setting = Setting.SCRIPTS,
     ),
     ABOUT(
