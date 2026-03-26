@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,7 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.documentfile.provider.DocumentFile
 import one.next.player.core.ui.components.PreferenceSwitchWithDivider
-import one.next.player.core.ui.components.TopAppBar
+import one.next.player.core.ui.components.NextTopAppBar
+import one.next.player.core.ui.designsystem.NextIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,10 +36,8 @@ fun ManageScriptsScreen(
     val prefs = context.getSharedPreferences("lua_script_prefs", Context.MODE_PRIVATE)
     val folderUriString = prefs.getString("script_folder_uri", null)
     
-    // State to hold the list of scanned .lua files
     var scriptFiles by remember { mutableStateOf<List<DocumentFile>>(emptyList()) }
 
-    // This block runs when the screen opens to safely scan the selected folder
     LaunchedEffect(folderUriString) {
         if (folderUriString != null) {
             try {
@@ -55,9 +56,13 @@ fun ManageScriptsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            NextTopAppBar(
                 title = "Manage Lua Scripts",
-                onNavigationIconClick = onNavigateUp
+                navigationIcon = {
+                    IconButton(onClick = onNavigateUp) {
+                        Icon(imageVector = NextIcons.ArrowBack, contentDescription = "Back")
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -77,15 +82,18 @@ fun ManageScriptsScreen(
                 LazyColumn {
                     items(scriptFiles) { file ->
                         val fileName = file.name ?: "Unknown.lua"
-                        // Create a unique key for each script to save its on/off state
                         val prefKey = "script_enabled_$fileName"
                         var isEnabled by remember { mutableStateOf(prefs.getBoolean(prefKey, false)) }
 
                         PreferenceSwitchWithDivider(
                             title = fileName,
-                            subtitle = if (isEnabled) "Enabled" else "Disabled",
+                            description = if (isEnabled) "Enabled" else "Disabled",
                             isChecked = isEnabled,
                             onClick = {
+                                isEnabled = !isEnabled
+                                prefs.edit().putBoolean(prefKey, isEnabled).apply()
+                            },
+                            onChecked = {
                                 isEnabled = !isEnabled
                                 prefs.edit().putBoolean(prefKey, isEnabled).apply()
                             }
