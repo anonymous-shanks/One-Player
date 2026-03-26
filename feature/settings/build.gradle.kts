@@ -22,7 +22,7 @@ android {
 
     kotlin {
         compilerOptions {
-            jvmTarget.set(JvmTarget.fromTarget(libs.versions.android.jvm.get()))
+             jvmTarget.set(JvmTarget.fromTarget(libs.versions.android.jvm.get()))
         }
     }
 
@@ -32,7 +32,6 @@ android {
 }
 
 dependencies {
-
     implementation(project(":core:ui"))
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
@@ -68,4 +67,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.testManifest)
+    
+    // ADDED: For reading the Lua scripts folder
+    implementation("androidx.documentfile:documentfile:1.0.1")
 }
