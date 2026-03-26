@@ -19,18 +19,17 @@ jobs:
         id: set-short-sha
         run: echo "SHORT_SHA=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
 
-      - name: Setup JDK 17
+      - name: Setup JDK 23
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt'
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '23'
           cache: 'gradle'
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
       - name: Build Unsigned APKs with Gradle
-        # Changed to assembleRelease because One-Player doesn't use product flavors
         run: ./gradlew assembleRelease --warning-mode all
 
       - name: Upload arm64-v8a Artifact
