@@ -216,6 +216,7 @@ enum class Setting {
     SUBTITLE,
     PRIVACY,
     GENERAL,
+    SCRIPTS,
     ABOUT,
 }
 
@@ -354,6 +355,12 @@ internal enum class SettingRow(
             R.string.backup_settings,
             R.string.restore_settings,
         ),
+    ),
+    SCRIPTS(
+        titleResId = R.string.scripts_name,
+        descriptionResId = R.string.scripts_description,
+        icon = NextIcons.Script, 
+        setting = Setting.SCRIPTS,
     ),
     ABOUT(
         titleResId = R.string.about_name,
