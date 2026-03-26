@@ -1,5 +1,9 @@
 package one.next.player.navigation
 
+import one.next.player.settings.navigation.manageScriptsScreen
+import one.next.player.settings.navigation.navigateToManageScripts
+import one.next.player.settings.navigation.navigateToScriptPreferences
+import one.next.player.settings.navigation.scriptPreferencesScreen
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.navigation
