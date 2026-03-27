@@ -211,7 +211,6 @@ class PlayerService : MediaSessionService() {
     private lateinit var sessionMediaSourceFactory: MediaSource.Factory
     private lateinit var assSubtitleParserFactory: AssSubtitleParserFactory
 
-    // mediaId 对应预解析 IndexSeekMap
     private val mkvSeekMapCache = ConcurrentHashMap<String, androidx.media3.extractor.SeekMap>()
     private val mkvCueParseJobs = ConcurrentHashMap<String, Deferred<androidx.media3.extractor.SeekMap?>>()
 
@@ -303,21 +302,20 @@ class PlayerService : MediaSessionService() {
             pendingStartupPreciseResumeToken = null
             isMediaItemReady = false
             isPendingExternalSubAutoSelect = false
+            
+            // --- ADD LUA TRIGGER HERE ---
+            luaScriptManager?.onFileLoaded()
+            // ----------------------------
+
             mediaItem?.mediaMetadata?.let { metadata ->
                 mediaSession?.player?.run {
                     setPlaybackSpeed(metadata.playbackSpeed ?: playerPreferences.defaultPlaybackSpeed)
                     playerSpecificSubtitleDelayMilliseconds = metadata.subtitleDelayMilliseconds ?: 0L
                     playerSpecificSubtitleSpeed = metadata.subtitleSpeed ?: 1f
                 }
-                // --- ADD LUA TRIGGER HERE ---
-                luaScriptManager?.onFileLoaded()
-                // ----------------------------
-
-                resumePositionMs?.let {
-                    mediaSession?.player?.seekTo(it)
-                }
 
                 val resumePositionMs = metadata.positionMs?.takeIf { playerPreferences.resume == Resume.YES }
+                
                 if (metadata.isApproximateSeekEnabled) {
                     val restoredSeekMap = restoreCachedMkvSeekMap(mediaItem)
                     if (restoredSeekMap != null) {
@@ -344,7 +342,6 @@ class PlayerService : MediaSessionService() {
                 }
             }
         }
-
         override fun onPositionDiscontinuity(
             oldPosition: Player.PositionInfo,
             newPosition: Player.PositionInfo,
@@ -507,7 +504,6 @@ class PlayerService : MediaSessionService() {
             val player = mediaSession?.player ?: return
             val currentMediaItem = player.currentMediaItem ?: return
 
-            // 从 track format 读取视频尺寸，再通过 metadata extras 传给 MediaController
             val format = player.currentTracks.groups
                 .firstOrNull { it.type == C.TRACK_TYPE_VIDEO }
                 ?.getTrackFormat(0)
@@ -582,7 +578,6 @@ class PlayerService : MediaSessionService() {
         }
     }
 
-    // MP4 容器解析失败时，检测并修复结构问题后以容错模式重试
     private fun retryWithFixedSource(error: PlaybackException) {
         if (!hasParserExceptionCause(error)) return
         val player = mediaSession?.player as? ExoPlayer ?: return
@@ -695,9 +690,7 @@ class PlayerService : MediaSessionService() {
         }
     }
 
-    // 预热 MediaCodecUtil 解码器缓存，避免首次播放阻塞在 codec 枚举
     private fun warmUpCodecCache() {
-        // 仅预热最常用的 MIME，减少 synchronized 占锁时间
         val mimeTypes = listOf(
             MimeTypes.VIDEO_H265,
             MimeTypes.VIDEO_H264,
@@ -707,12 +700,10 @@ class PlayerService : MediaSessionService() {
             try {
                 MediaCodecUtil.getDecoderInfos(mimeType, false, false)
             } catch (_: MediaCodecUtil.DecoderQueryException) {
-                // 仅为预热缓存
             }
         }
     }
 
-    // 扫描 MP4 顶层 atom，检测连续出现的 moov box
     private fun detectDuplicateMoov(uri: Uri): SkipRegion? {
         try {
             contentResolver.openInputStream(uri)?.use { stream ->
@@ -757,7 +748,6 @@ class PlayerService : MediaSessionService() {
         return null
     }
 
-    // DataSource 包装器，读取时透明跳过 [gapStart, gapStart + gapLength) 区间
     private class GapSkipDataSource(
         private val upstream: DataSource,
         private val targetUri: Uri,
@@ -830,7 +820,6 @@ class PlayerService : MediaSessionService() {
         }
     }
 
-    // 容错 ExtractorsFactory，Mp4 使用 LenientMp4Extractor，其余回退到默认实现
     private class LenientExtractorsFactory : ExtractorsFactory {
         override fun createExtractors(): Array<Extractor> {
             val defaults = DefaultExtractorsFactory().createExtractors()
@@ -840,7 +829,6 @@ class PlayerService : MediaSessionService() {
         }
     }
 
-    // 包装 Mp4Extractor，捕获 sample 级别的 ParserException
     private class LenientMp4Extractor : Extractor {
 
         private val delegate = Mp4Extractor(SubtitleParser.Factory.UNSUPPORTED)
@@ -872,7 +860,6 @@ class PlayerService : MediaSessionService() {
             e.printStackTrace()
         }
     }
-
     private val mediaSessionCallback = object : MediaSession.Callback {
         override fun onConnect(
             session: MediaSession,
@@ -1083,8 +1070,6 @@ class PlayerService : MediaSessionService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
-        override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
-
     override fun onCreate() {
         super.onCreate()
         serviceScope.launch(Dispatchers.IO) { warmUpCodecCache() }
@@ -1171,7 +1156,7 @@ class PlayerService : MediaSessionService() {
         if (isLuaEnabled && folderUriString != null) {
             try {
                 val treeUri = Uri.parse(folderUriString)
-                val path = one.next.player.core.common.extensions.getPath(treeUri)
+                val path = one.next.player.core.common.extensions.getPath(applicationContext, treeUri) // FIXED getPath argument
                 if (path != null) {
                     scriptDir = File(path)
                 }
@@ -1269,7 +1254,6 @@ class PlayerService : MediaSessionService() {
                 }
                 val existingSubConfigurations = mediaItem.localConfiguration?.subtitleConfigurations ?: emptyList()
 
-                // 先写入占位封面，后台再异步加载真实封面
                 val artworkUri = getDefaultArtworkUri()
 
                 val title = mediaItem.mediaMetadata.title ?: video?.nameWithExtension ?: getFilenameFromUri(uri)
@@ -1282,10 +1266,9 @@ class PlayerService : MediaSessionService() {
                 val audioTrackIndex = mediaItem.mediaMetadata.audioTrackIndex ?: videoState?.audioTrackIndex
                 val subtitleDelay = mediaItem.mediaMetadata.subtitleDelayMilliseconds ?: videoState?.subtitleDelayMilliseconds
                 val subtitleSpeed = mediaItem.mediaMetadata.subtitleSpeed ?: videoState?.subtitleSpeed
-                // MediaStore 返回的宽高已考虑 rotation，用于预设屏幕方向
                 val videoWidth = video?.width
                 val videoHeight = video?.height
-                val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path
+                val mediaPath = video?.path ?: videoState?.path ?: getPath(applicationContext, uri) ?: uri.path // FIXED getPath argument
                 val isLocalUri = uri.scheme == ContentResolver.SCHEME_FILE || uri.scheme == ContentResolver.SCHEME_CONTENT
                 val isApproximateSeekEnabled = isLocalUri && mediaPath?.endsWith(".mkv", ignoreCase = true) == true
 
@@ -1315,7 +1298,6 @@ class PlayerService : MediaSessionService() {
         }.awaitAll()
     }
 
-    // 从文件头快速提取时长，用于数据库无记录的外部文件
     private fun extractDurationMs(uri: Uri): Long? = try {
         val retriever = MediaMetadataRetriever()
         retriever.setDataSource(applicationContext, uri)
@@ -1335,7 +1317,6 @@ class PlayerService : MediaSessionService() {
         val dataSourceFactory = createDataSourceFactory(uri, requestHeaders)
         val cachedSeekMap = mkvSeekMapCache[mediaItem.mediaId]
         if (cachedSeekMap != null) {
-            // 使用预解析的 SeekMap 注入到 extractor，跳过慢速 Cues 加载
             val factory = DefaultMediaSourceFactory(
                 dataSourceFactory,
                 createSeekMapInjectedExtractorsFactory(cachedSeekMap),
@@ -1475,7 +1456,6 @@ class PlayerService : MediaSessionService() {
             return SessionResult(SessionResult.RESULT_SUCCESS)
         }
 
-        // approximate source 无法高效 seek，直接升级到 precise source
         Logger.info(
             TAG,
             "Promote to precise seek mediaId=${currentItem.mediaId} start=$startPosition target=$targetPosition",
@@ -1484,7 +1464,6 @@ class PlayerService : MediaSessionService() {
         return SessionResult(SessionResult.RESULT_SUCCESS)
     }
 
-    // 后台预解析 MKV Cues，为后续 seek 构建快速 SeekMap
     private fun scheduleMkvCueCache(mediaItem: MediaItem): Deferred<androidx.media3.extractor.SeekMap?> {
         val mediaId = mediaItem.mediaId
         mkvSeekMapCache[mediaId]?.let { return CompletableDeferred(it) }
@@ -1570,7 +1549,7 @@ class PlayerService : MediaSessionService() {
         val path = runCatching {
             when (uri.scheme) {
                 ContentResolver.SCHEME_FILE -> uri.toFile().absolutePath
-                ContentResolver.SCHEME_CONTENT -> getPath(uri)
+                ContentResolver.SCHEME_CONTENT -> getPath(applicationContext, uri) // FIXED getPath argument
                 else -> null
             }
         }.getOrNull() ?: return null
@@ -1633,11 +1612,10 @@ class PlayerService : MediaSessionService() {
 
     private fun resolveLocalFile(uri: Uri): File? = when (uri.scheme) {
         ContentResolver.SCHEME_FILE -> runCatching { uri.toFile() }.getOrNull()
-        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File)
+        ContentResolver.SCHEME_CONTENT -> getPath(applicationContext, uri)?.let(::File) // FIXED getPath argument
         else -> null
     }?.takeIf(File::exists)
 
-    // 创建注入了预解析 SeekMap 的 ExtractorsFactory
     private fun createSeekMapInjectedExtractorsFactory(
         seekMap: androidx.media3.extractor.SeekMap,
     ): ExtractorsFactory = ExtractorsFactory {
@@ -1672,7 +1650,6 @@ class PlayerService : MediaSessionService() {
         null
     }
 
-    // 在播放列表中按 mediaId 查找对应的 Player、索引和 MediaItem
     private fun findMediaItemInSession(mediaId: String): Triple<Player, Int, MediaItem>? {
         val player = mediaSession?.player ?: return null
         val index = (0 until player.mediaItemCount).firstOrNull {
@@ -1704,7 +1681,6 @@ class PlayerService : MediaSessionService() {
         }
     }
 
-    // 无内置字幕时加载外部字幕（同名文件 + 已持久化的用户添加字幕）
     private fun loadExternalSubtitlesForCurrentItem(
         mediaId: String,
         requestHeaders: Map<String, String>,
@@ -1742,8 +1718,7 @@ class PlayerService : MediaSessionService() {
         val videoState = mediaRepository.getVideoState(uri = mediaId)
         val dbExternalSubs = videoState?.externalSubs ?: emptyList()
 
-        // 发现同名本地字幕（排除已保存的）
-        val localSubs = (videoState?.path ?: getPath(uri))?.let {
+        val localSubs = (videoState?.path ?: getPath(applicationContext, uri))?.let { // FIXED getPath argument
             File(it).getLocalSubtitles(
                 context = this@PlayerService,
                 excludeSubsList = dbExternalSubs,
