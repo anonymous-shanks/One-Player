@@ -342,6 +342,7 @@ class PlayerService : MediaSessionService() {
                 }
             }
         }
+
         override fun onPositionDiscontinuity(
             oldPosition: Player.PositionInfo,
             newPosition: Player.PositionInfo,
@@ -1156,7 +1157,7 @@ class PlayerService : MediaSessionService() {
         if (isLuaEnabled && folderUriString != null) {
             try {
                 val treeUri = Uri.parse(folderUriString)
-                val path = one.next.player.core.common.extensions.getPath(treeUri) // FIXED getPath argument
+                val path = getPath(treeUri) // FIXED: Only passing one argument
                 if (path != null) {
                     scriptDir = File(path)
                 }
@@ -1268,7 +1269,7 @@ class PlayerService : MediaSessionService() {
                 val subtitleSpeed = mediaItem.mediaMetadata.subtitleSpeed ?: videoState?.subtitleSpeed
                 val videoWidth = video?.width
                 val videoHeight = video?.height
-                val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path // FIXED getPath argument
+                val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path // FIXED: Only passing one argument
                 val isLocalUri = uri.scheme == ContentResolver.SCHEME_FILE || uri.scheme == ContentResolver.SCHEME_CONTENT
                 val isApproximateSeekEnabled = isLocalUri && mediaPath?.endsWith(".mkv", ignoreCase = true) == true
 
@@ -1549,7 +1550,7 @@ class PlayerService : MediaSessionService() {
         val path = runCatching {
             when (uri.scheme) {
                 ContentResolver.SCHEME_FILE -> uri.toFile().absolutePath
-                ContentResolver.SCHEME_CONTENT -> getPath(uri) // FIXED getPath argument
+                ContentResolver.SCHEME_CONTENT -> getPath(uri) // FIXED: Only passing one argument
                 else -> null
             }
         }.getOrNull() ?: return null
@@ -1612,7 +1613,7 @@ class PlayerService : MediaSessionService() {
 
     private fun resolveLocalFile(uri: Uri): File? = when (uri.scheme) {
         ContentResolver.SCHEME_FILE -> runCatching { uri.toFile() }.getOrNull()
-        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File) // FIXED getPath argument
+        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File) // FIXED: Only passing one argument
         else -> null
     }?.takeIf(File::exists)
 
@@ -1718,7 +1719,7 @@ class PlayerService : MediaSessionService() {
         val videoState = mediaRepository.getVideoState(uri = mediaId)
         val dbExternalSubs = videoState?.externalSubs ?: emptyList()
 
-        val localSubs = (videoState?.path ?: getPath(applicationContext, uri))?.let { // FIXED getPath argument
+        val localSubs = (videoState?.path ?: getPath(uri))?.let { // FIXED: Only passing one argument
             File(it).getLocalSubtitles(
                 context = this@PlayerService,
                 excludeSubsList = dbExternalSubs,
