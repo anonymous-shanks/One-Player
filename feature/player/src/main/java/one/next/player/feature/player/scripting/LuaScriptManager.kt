@@ -33,7 +33,7 @@ class LuaScriptManager(
         npTable.set("set_speed", object : OneArgFunction() {
             override fun call(speed: LuaValue): LuaValue {
                 CoroutineScope(Dispatchers.Main).launch {
-                    player.playbackParameters = PlaybackParameters(speed.checkfloat().toFloat())
+                    player.playbackParameters = PlaybackParameters(speed.checkdouble().toFloat())
                 }
                 return LuaValue.NIL
             }
@@ -82,7 +82,7 @@ class LuaScriptManager(
                 val chunk = globals.loadfile(file.absolutePath)
                 chunk.call()
                 CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(context, "Lua Success: ${file.name} load ho gayi! 🎉", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Lua Success: ${file.name} load ho gayi! \uD83C\uDF89", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Logger.error(TAG, "Error executing script ${file.name}", e)
