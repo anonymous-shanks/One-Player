@@ -82,7 +82,7 @@ class LuaScriptManager(
                 val chunk = globals.loadfile(file.absolutePath)
                 chunk.call()
                 CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(context, "Lua Success: ${file.name} load ho gayi! \uD83C\uDF89", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Lua Success: ${file.name} load ho gayi! 🎉", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Logger.error(TAG, "Error executing script ${file.name}", e)
