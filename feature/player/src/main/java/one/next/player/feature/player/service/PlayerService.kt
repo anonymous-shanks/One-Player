@@ -1156,7 +1156,7 @@ class PlayerService : MediaSessionService() {
         if (isLuaEnabled && folderUriString != null) {
             try {
                 val treeUri = Uri.parse(folderUriString)
-                val path = one.next.player.core.common.extensions.getPath(applicationContext, treeUri) // FIXED getPath argument
+                val path = one.next.player.core.common.extensions.getPath(treeUri) // FIXED getPath argument
                 if (path != null) {
                     scriptDir = File(path)
                 }
@@ -1268,7 +1268,7 @@ class PlayerService : MediaSessionService() {
                 val subtitleSpeed = mediaItem.mediaMetadata.subtitleSpeed ?: videoState?.subtitleSpeed
                 val videoWidth = video?.width
                 val videoHeight = video?.height
-                val mediaPath = video?.path ?: videoState?.path ?: getPath(applicationContext, uri) ?: uri.path // FIXED getPath argument
+                val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path // FIXED getPath argument
                 val isLocalUri = uri.scheme == ContentResolver.SCHEME_FILE || uri.scheme == ContentResolver.SCHEME_CONTENT
                 val isApproximateSeekEnabled = isLocalUri && mediaPath?.endsWith(".mkv", ignoreCase = true) == true
 
@@ -1549,7 +1549,7 @@ class PlayerService : MediaSessionService() {
         val path = runCatching {
             when (uri.scheme) {
                 ContentResolver.SCHEME_FILE -> uri.toFile().absolutePath
-                ContentResolver.SCHEME_CONTENT -> getPath(applicationContext, uri) // FIXED getPath argument
+                ContentResolver.SCHEME_CONTENT -> getPath(uri) // FIXED getPath argument
                 else -> null
             }
         }.getOrNull() ?: return null
@@ -1612,7 +1612,7 @@ class PlayerService : MediaSessionService() {
 
     private fun resolveLocalFile(uri: Uri): File? = when (uri.scheme) {
         ContentResolver.SCHEME_FILE -> runCatching { uri.toFile() }.getOrNull()
-        ContentResolver.SCHEME_CONTENT -> getPath(applicationContext, uri)?.let(::File) // FIXED getPath argument
+        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File) // FIXED getPath argument
         else -> null
     }?.takeIf(File::exists)
 
