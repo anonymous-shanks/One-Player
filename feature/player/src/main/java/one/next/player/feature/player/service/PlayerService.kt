@@ -139,6 +139,7 @@ class PlayerService : MediaSessionService() {
 
     private val serviceScope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var mediaSession: MediaSession? = null
+    private var luaScriptManager: one.next.player.feature.player.scripting.LuaScriptManager? = null
 
     companion object {
         private const val TAG = "PlayerService"
@@ -307,6 +308,13 @@ class PlayerService : MediaSessionService() {
                     setPlaybackSpeed(metadata.playbackSpeed ?: playerPreferences.defaultPlaybackSpeed)
                     playerSpecificSubtitleDelayMilliseconds = metadata.subtitleDelayMilliseconds ?: 0L
                     playerSpecificSubtitleSpeed = metadata.subtitleSpeed ?: 1f
+                }
+                // --- ADD LUA TRIGGER HERE ---
+                luaScriptManager?.onFileLoaded()
+                // ----------------------------
+
+                resumePositionMs?.let {
+                    mediaSession?.player?.seekTo(it)
                 }
 
                 val resumePositionMs = metadata.positionMs?.takeIf { playerPreferences.resume == Resume.YES }
@@ -1075,6 +1083,8 @@ class PlayerService : MediaSessionService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
+        override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+
     override fun onCreate() {
         super.onCreate()
         serviceScope.launch(Dispatchers.IO) { warmUpCodecCache() }
@@ -1152,6 +1162,30 @@ class PlayerService : MediaSessionService() {
                 }
             }
 
+        // --- ADD LUA ENGINE HERE ---
+        val prefs = getSharedPreferences("lua_script_prefs", android.content.Context.MODE_PRIVATE)
+        val isLuaEnabled = prefs.getBoolean("enable_lua", false)
+        val folderUriString = prefs.getString("script_folder_uri", null)
+        
+        var scriptDir: File? = null
+        if (isLuaEnabled && folderUriString != null) {
+            try {
+                val treeUri = Uri.parse(folderUriString)
+                val path = one.next.player.core.common.extensions.getPath(treeUri)
+                if (path != null) {
+                    scriptDir = File(path)
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+
+        luaScriptManager = one.next.player.feature.player.scripting.LuaScriptManager(
+            context = applicationContext,
+            player = player,
+            scriptDir = scriptDir
+        )
+        luaScriptManager?.loadScripts()
+        // ---------------------------
+
         try {
             mediaSession = MediaSession.Builder(this, player).apply {
                 setSessionActivity(
@@ -1178,6 +1212,9 @@ class PlayerService : MediaSessionService() {
             e.printStackTrace()
         }
     }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         val player = mediaSession?.player!!
