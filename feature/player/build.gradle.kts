@@ -22,7 +22,7 @@ android {
 
     kotlin {
         compilerOptions {
-            jvmTarget.set(JvmTarget.fromTarget(libs.versions.android.jvm.get()))
+             jvmTarget.set(JvmTarget.fromTarget(libs.versions.android.jvm.get()))
         }
     }
 
@@ -33,7 +33,6 @@ android {
 }
 
 dependencies {
-
     implementation(project(":core:common"))
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
@@ -48,6 +47,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewModel.ktx)
     implementation(libs.google.android.material)
     implementation(libs.androidx.activity.compose)
+ 
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
@@ -56,10 +56,10 @@ dependencies {
 
     implementation(libs.coil.compose)
 
-    // 可拖拽排序列表依赖
+    // Reorderable list
     implementation(libs.reorderable)
 
-    // Media3 依赖
+    // Media3 
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.exoplayer.dash)
@@ -76,7 +76,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.smbj)
 
-    // Hilt 依赖
+    // Hilt 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     ksp(libs.kotlin.metadata.jvm)
@@ -85,4 +85,7 @@ dependencies {
     testImplementation(libs.junit4)
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.test.espresso.core)
+
+    // ADDED: Lua Scripting Engine
+    implementation("org.luaj:luaj-jse:3.0.1")
 }
