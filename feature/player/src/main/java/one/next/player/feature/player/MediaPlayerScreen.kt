@@ -29,8 +29,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +50,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -219,7 +220,7 @@ internal fun MediaPlayerScreen(
     }
 
     var overlayView by remember { mutableStateOf<OverlayView?>(null) }
-    var showLuaScriptMenu by remember { mutableStateOf(false) } 
+    var showLuaScriptMenu by remember { mutableStateOf(false) } // State for Lua Menu
     var isCustomizingControls by remember { mutableStateOf(false) }
     var customizingHiddenPlayerControls by remember { mutableStateOf(playerPreferences.hiddenPlayerControls) }
     val scope = rememberCoroutineScope()
@@ -651,20 +652,22 @@ internal fun MediaPlayerScreen(
             // 2. Animated Side Panel
             AnimatedVisibility(
                 visible = showLuaScriptMenu,
-                enter = slideInHorizontally(initialOffsetX = { it }), // Slide in from right
-                exit = slideOutHorizontally(targetOffsetX = { it }),
+                enter = slideInHorizontally(
+                    animationSpec = tween(300),
+                    initialOffsetX = { fullWidth -> fullWidth } 
+                ),
+                exit = slideOutHorizontally(
+                    animationSpec = tween(300),
+                    targetOffsetX = { fullWidth -> fullWidth }
+                ),
                 modifier = Modifier.align(Alignment.CenterEnd)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .width(360.dp) // Exact width of NextPlayer's native "Now Playing" list
-                        .background(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp) // Native rounded corners
-                        )
-                        .padding(WindowInsets.systemBars.asPaddingValues())
-                        // Absorb clicks so they don't dismiss the panel
+                        .width(400.dp)
+                        .clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp))
+                        .background(MaterialTheme.colorScheme.surface)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
