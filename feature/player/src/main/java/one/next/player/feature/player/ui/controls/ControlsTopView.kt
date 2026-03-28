@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,10 +44,13 @@ fun ControlsTopView(
     isAudioSelected: Boolean = false,
     isSubtitleVisible: Boolean = true,
     isSubtitleSelected: Boolean = false,
+    isLuaVisible: Boolean = true,
+    isLuaSelected: Boolean = false,
     onAudioClick: () -> Unit = {},
     onSubtitleClick: () -> Unit = {},
     onPlaybackSpeedClick: () -> Unit = {},
     onPlaylistClick: () -> Unit = {},
+    onLuaClick: () -> Unit = {},
     onBackClick: () -> Unit,
 ) {
     val systemBarsPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout).asPaddingValues()
@@ -86,6 +91,18 @@ fun ControlsTopView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (isLuaVisible) {
+                PlayerButton(
+                    onClick = onLuaClick,
+                    isSelected = isLuaSelected,
+                    label = "Lua Scripts".takeIf { isCustomizingControls },
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Code,
+                        contentDescription = "btn_lua",
+                    )
+                }
+            }
             if (isPlaylistVisible) {
                 PlayerButton(
                     onClick = onPlaylistClick,
