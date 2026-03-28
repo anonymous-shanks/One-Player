@@ -8,7 +8,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -18,12 +22,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutoutPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -194,7 +200,6 @@ internal fun MediaPlayerScreen(
         }
     }
 
-    // 拖动进度条时保持控件可见，结束后恢复自动隐藏
     LaunchedEffect(seekGestureState.isSeeking) {
         if (seekGestureState.isSeeking) {
             controlsVisibilityState.showControls()
@@ -214,7 +219,7 @@ internal fun MediaPlayerScreen(
     }
 
     var overlayView by remember { mutableStateOf<OverlayView?>(null) }
-    var showLuaScriptMenu by remember { mutableStateOf(false) } // State for Lua Menu
+    var showLuaScriptMenu by remember { mutableStateOf(false) } 
     var isCustomizingControls by remember { mutableStateOf(false) }
     var customizingHiddenPlayerControls by remember { mutableStateOf(playerPreferences.hiddenPlayerControls) }
     val scope = rememberCoroutineScope()
@@ -626,15 +631,54 @@ internal fun MediaPlayerScreen(
                 onVideoContentScaleChanged = { videoZoomAndContentScaleState.onVideoContentScaleChanged(it) },
             )
 
-            // Render Lua Script Menu Bottom Sheet when triggered
+            // --- LUA SIDE PANEL WITH NATIVE ANIMATION ---
+            // 1. Scrim (Dim Background)
             if (showLuaScriptMenu) {
-                one.next.player.feature.player.scripting.LuaScriptMenuBottomSheet(
-                    onDismissRequest = {
-                        showLuaScriptMenu = false
-                        controlsVisibilityState.showControls()
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            showLuaScriptMenu = false
+                            controlsVisibilityState.showControls()
+                        }
                 )
             }
+
+            // 2. Animated Side Panel
+            AnimatedVisibility(
+                visible = showLuaScriptMenu,
+                enter = slideInHorizontally(initialOffsetX = { it }), // Slide in from right
+                exit = slideOutHorizontally(targetOffsetX = { it }),
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(360.dp) // Exact width of NextPlayer's native "Now Playing" list
+                        .background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp) // Native rounded corners
+                        )
+                        .padding(WindowInsets.systemBars.asPaddingValues())
+                        // Absorb clicks so they don't dismiss the panel
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {} 
+                ) {
+                    one.next.player.feature.player.scripting.LuaScriptMenuSidePanel(
+                        onDismissRequest = {
+                            showLuaScriptMenu = false
+                            controlsVisibilityState.showControls()
+                        }
+                    )
+                }
+            }
+            // -----------------------
         }
     }
 
