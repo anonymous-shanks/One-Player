@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,7 +24,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import one.next.player.core.ui.R
-import one.next.player.core.ui.designsystem.NextIcons
 import one.next.player.core.ui.extensions.copy
 import one.next.player.feature.player.buttons.PlayerButton
 
@@ -97,7 +98,7 @@ fun ControlsTopView(
                     label = "Lua Scripts".takeIf { isCustomizingControls },
                 ) {
                     Icon(
-                        imageVector = NextIcons.SmartButton,
+                        imageVector = Icons.Rounded.Build,
                         contentDescription = "btn_lua",
                     )
                 }
