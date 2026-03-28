@@ -25,16 +25,24 @@ import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -220,7 +228,9 @@ internal fun MediaPlayerScreen(
     }
 
     var overlayView by remember { mutableStateOf<OverlayView?>(null) }
-    var showLuaScriptMenu by remember { mutableStateOf(false) } // State for Lua Menu
+    var showLuaScriptMenu by remember { mutableStateOf(false) }
+    var showChapterMenu by remember { mutableStateOf(false) } // State for Chapter Menu
+    
     var isCustomizingControls by remember { mutableStateOf(false) }
     var customizingHiddenPlayerControls by remember { mutableStateOf(playerPreferences.hiddenPlayerControls) }
     val scope = rememberCoroutineScope()
@@ -413,6 +423,7 @@ internal fun MediaPlayerScreen(
                             ) {
                                 ControlsTopView(
                                     title = metadataState.title ?: "",
+                                    chapterTitle = metadataState.currentChapter?.title,
                                     isCustomizingControls = isCustomizingControls,
                                     isBackVisible = isControlVisible(PlayerControl.BACK),
                                     isBackSelected = isControlSelected(PlayerControl.BACK),
@@ -427,6 +438,12 @@ internal fun MediaPlayerScreen(
                                     isSubtitleSelected = isControlSelected(PlayerControl.SUBTITLE),
                                     isLuaVisible = !isCustomizingControls,
                                     isLuaSelected = false,
+                                    onChapterClick = {
+                                        if (!isCustomizingControls) {
+                                            controlsVisibilityState.hideControls()
+                                            showChapterMenu = true
+                                        }
+                                    },
                                     onLuaClick = {
                                         if (!isCustomizingControls) {
                                             controlsVisibilityState.hideControls()
@@ -632,8 +649,7 @@ internal fun MediaPlayerScreen(
                 onVideoContentScaleChanged = { videoZoomAndContentScaleState.onVideoContentScaleChanged(it) },
             )
 
-            // --- LUA SIDE PANEL WITH NATIVE ANIMATION ---
-            // 1. Scrim (Dim Background)
+            // --- LUA SIDE PANEL ---
             if (showLuaScriptMenu) {
                 Box(
                     modifier = Modifier
@@ -649,7 +665,6 @@ internal fun MediaPlayerScreen(
                 )
             }
 
-            // 2. Animated Side Panel
             AnimatedVisibility(
                 visible = showLuaScriptMenu,
                 enter = slideInHorizontally(
@@ -682,6 +697,143 @@ internal fun MediaPlayerScreen(
                 }
             }
             // -----------------------
+
+            // --- CHAPTER SIDE PANEL WITH HIGHLIGHT & AUTO-SCROLL ---
+            if (showChapterMenu) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            showChapterMenu = false
+                            controlsVisibilityState.showControls()
+                        }
+                )
+            }
+
+            AnimatedVisibility(
+                visible = showChapterMenu,
+                enter = slideInHorizontally(
+                    animationSpec = tween(300),
+                    initialOffsetX = { it }
+                ),
+                exit = slideOutHorizontally(
+                    animationSpec = tween(300),
+                    targetOffsetX = { it }
+                ),
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(400.dp)
+                        .clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {}
+                ) {
+                    val listState = rememberLazyListState()
+                    val chapters = metadataState.chapters
+                    val currentChapterIndex = metadataState.currentChapter?.index ?: -1
+
+                    // Auto scroll to current chapter when menu opens
+                    LaunchedEffect(showChapterMenu, currentChapterIndex) {
+                        if (showChapterMenu && currentChapterIndex >= 0 && chapters.isNotEmpty()) {
+                            listState.animateScrollToItem(currentChapterIndex)
+                        }
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                    ) {
+                        // Drag handle
+                        Box(
+                            modifier = Modifier
+                                .width(36.dp)
+                                .height(4.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                .align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        
+                        // Header
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Chapters",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            IconButton(onClick = { 
+                                showChapterMenu = false
+                                controlsVisibilityState.showControls()
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Close",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(chapters) { chapter ->
+                                val isSelected = chapter.index == currentChapterIndex
+                                // Native theme highlighting
+                                val bgColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                                val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(bgColor)
+                                        .clickable {
+                                            player.seekTo(chapter.startTimeMs)
+                                            showChapterMenu = false
+                                            controlsVisibilityState.showControls()
+                                        }
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${chapter.index + 1}.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor.copy(alpha = 0.7f),
+                                        modifier = Modifier.width(32.dp)
+                                    )
+                                    Text(
+                                        text = chapter.title,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = textColor,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // ----------------------------------------------------
         }
     }
 
@@ -725,6 +877,9 @@ internal fun MediaPlayerScreen(
             overlayView = null
         } else if (showLuaScriptMenu) {
             showLuaScriptMenu = false
+            controlsVisibilityState.showControls()
+        } else if (showChapterMenu) {
+            showChapterMenu = false
             controlsVisibilityState.showControls()
         } else if (isCustomizingControls) {
             exitControlCustomization()
