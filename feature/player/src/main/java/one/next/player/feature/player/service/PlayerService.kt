@@ -1149,19 +1149,31 @@ class PlayerService : MediaSessionService() {
             }
 
         // --- ADD LUA ENGINE HERE ---
-        val prefs = getSharedPreferences("lua_script_prefs", android.content.Context.MODE_PRIVATE)
-        val isLuaEnabled = prefs.getBoolean("enable_lua", false)
-        val folderUriString = prefs.getString("script_folder_uri", null)
+        val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        
+        // Defaults to true and the SAF uri string you showed me if missing
+        val isLuaEnabled = prefs.getBoolean("enable_lua", true) 
+        val folderUriString = prefs.getString("script_folder_uri", "content://com.android.externalstorage.documents/tree/primary%3ANextPlayerScripts")
         
         var scriptDir: File? = null
+        
         if (isLuaEnabled && folderUriString != null) {
             try {
-                val treeUri = Uri.parse(folderUriString)
-                val path = getPath(treeUri) // FIXED: Only passing one argument
-                if (path != null) {
-                    scriptDir = File(path)
+                if (folderUriString.contains("primary%3A")) {
+                    val folderName = android.net.Uri.decode(folderUriString.substringAfter("primary%3A"))
+                    val absolutePath = android.os.Environment.getExternalStorageDirectory().absolutePath + "/" + folderName
+                    scriptDir = File(absolutePath)
+                    Logger.info(TAG, "Lua Engine: Resolved Path -> $absolutePath")
+                } else {
+                    val treeUri = Uri.parse(folderUriString)
+                    val path = getPath(treeUri)
+                    if (path != null) {
+                        scriptDir = File(path)
+                    }
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) { 
+                e.printStackTrace() 
+            }
         }
 
         luaScriptManager = one.next.player.feature.player.scripting.LuaScriptManager(
@@ -1269,7 +1281,7 @@ class PlayerService : MediaSessionService() {
                 val subtitleSpeed = mediaItem.mediaMetadata.subtitleSpeed ?: videoState?.subtitleSpeed
                 val videoWidth = video?.width
                 val videoHeight = video?.height
-                val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path // FIXED: Only passing one argument
+                val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path 
                 val isLocalUri = uri.scheme == ContentResolver.SCHEME_FILE || uri.scheme == ContentResolver.SCHEME_CONTENT
                 val isApproximateSeekEnabled = isLocalUri && mediaPath?.endsWith(".mkv", ignoreCase = true) == true
 
@@ -1550,7 +1562,7 @@ class PlayerService : MediaSessionService() {
         val path = runCatching {
             when (uri.scheme) {
                 ContentResolver.SCHEME_FILE -> uri.toFile().absolutePath
-                ContentResolver.SCHEME_CONTENT -> getPath(uri) // FIXED: Only passing one argument
+                ContentResolver.SCHEME_CONTENT -> getPath(uri) 
                 else -> null
             }
         }.getOrNull() ?: return null
@@ -1613,7 +1625,7 @@ class PlayerService : MediaSessionService() {
 
     private fun resolveLocalFile(uri: Uri): File? = when (uri.scheme) {
         ContentResolver.SCHEME_FILE -> runCatching { uri.toFile() }.getOrNull()
-        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File) // FIXED: Only passing one argument
+        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File) 
         else -> null
     }?.takeIf(File::exists)
 
@@ -1719,7 +1731,7 @@ class PlayerService : MediaSessionService() {
         val videoState = mediaRepository.getVideoState(uri = mediaId)
         val dbExternalSubs = videoState?.externalSubs ?: emptyList()
 
-        val localSubs = (videoState?.path ?: getPath(uri))?.let { // FIXED: Only passing one argument
+        val localSubs = (videoState?.path ?: getPath(uri))?.let { 
             File(it).getLocalSubtitles(
                 context = this@PlayerService,
                 excludeSubsList = dbExternalSubs,
