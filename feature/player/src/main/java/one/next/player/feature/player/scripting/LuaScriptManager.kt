@@ -1,7 +1,6 @@
 package one.next.player.feature.player.scripting
 
 import android.content.Context
-import android.widget.Toast
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
@@ -39,12 +38,11 @@ class LuaScriptManager(
             }
         })
 
-        // Lua function: np.osd_message("message")
+        // (Optional) If you want to keep the OSD message functionality without toasts, 
+        // you will need to implement a custom OSD UI later. For now, we can leave it as a log.
         npTable.set("osd_message", object : OneArgFunction() {
             override fun call(message: LuaValue): LuaValue {
-                CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(context, message.checkjstring(), Toast.LENGTH_SHORT).show()
-                }
+                Logger.info(TAG, "OSD Message: ${message.checkjstring()}")
                 return LuaValue.NIL
             }
         })
@@ -53,26 +51,15 @@ class LuaScriptManager(
     }
 
     fun loadScripts() {
-        if (scriptDir == null) {
-            CoroutineScope(Dispatchers.Main).launch {
-                Toast.makeText(context, "Lua Debug: Folder path NULL hai!", Toast.LENGTH_SHORT).show()
-            }
-            return
-        }
-
-        if (!scriptDir.exists()) {
-            CoroutineScope(Dispatchers.Main).launch {
-                Toast.makeText(context, "Lua Debug: Folder exist nahi karta ya storage permission denied hai!\nPath: ${scriptDir.absolutePath}", Toast.LENGTH_LONG).show()
-            }
+        if (scriptDir == null || !scriptDir.exists()) {
+            Logger.info(TAG, "Lua scripts directory is null or does not exist. Lua engine disabled or no path set.")
             return
         }
 
         val files = scriptDir.listFiles { _, name -> name.endsWith(".lua") }
 
         if (files == null || files.isEmpty()) {
-            CoroutineScope(Dispatchers.Main).launch {
-                Toast.makeText(context, "Lua Debug: Folder mil gaya par andar koi .lua file nahi mili!", Toast.LENGTH_SHORT).show()
-            }
+            Logger.info(TAG, "No .lua files found in the directory.")
             return
         }
 
@@ -81,14 +68,8 @@ class LuaScriptManager(
                 Logger.info(TAG, "Loading script: ${file.name}")
                 val chunk = globals.loadfile(file.absolutePath)
                 chunk.call()
-                CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(context, "Lua Success: ${file.name} load ho gayi! \uD83C\uDF89", Toast.LENGTH_SHORT).show()
-                }
             } catch (e: Exception) {
                 Logger.error(TAG, "Error executing script ${file.name}", e)
-                CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(context, "Lua Error: ${e.message}", Toast.LENGTH_LONG).show()
-                }
             }
         }
     }
