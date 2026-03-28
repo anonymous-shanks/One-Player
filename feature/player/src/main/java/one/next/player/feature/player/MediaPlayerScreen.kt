@@ -214,6 +214,7 @@ internal fun MediaPlayerScreen(
     }
 
     var overlayView by remember { mutableStateOf<OverlayView?>(null) }
+    var showLuaScriptMenu by remember { mutableStateOf(false) } // State for Lua Menu
     var isCustomizingControls by remember { mutableStateOf(false) }
     var customizingHiddenPlayerControls by remember { mutableStateOf(playerPreferences.hiddenPlayerControls) }
     val scope = rememberCoroutineScope()
@@ -418,6 +419,14 @@ internal fun MediaPlayerScreen(
                                     isAudioSelected = isControlSelected(PlayerControl.AUDIO),
                                     isSubtitleVisible = isControlVisible(PlayerControl.SUBTITLE),
                                     isSubtitleSelected = isControlSelected(PlayerControl.SUBTITLE),
+                                    isLuaVisible = !isCustomizingControls,
+                                    isLuaSelected = false,
+                                    onLuaClick = {
+                                        if (!isCustomizingControls) {
+                                            controlsVisibilityState.hideControls()
+                                            showLuaScriptMenu = true
+                                        }
+                                    },
                                     onAudioClick = {
                                         if (isCustomizingControls) {
                                             toggleControlVisibility(PlayerControl.AUDIO)
@@ -616,6 +625,16 @@ internal fun MediaPlayerScreen(
                 onSubtitleOptionEvent = viewModel::onSubtitleOptionEvent,
                 onVideoContentScaleChanged = { videoZoomAndContentScaleState.onVideoContentScaleChanged(it) },
             )
+
+            // Render Lua Script Menu Bottom Sheet when triggered
+            if (showLuaScriptMenu) {
+                one.next.player.feature.player.scripting.LuaScriptMenuBottomSheet(
+                    onDismissRequest = {
+                        showLuaScriptMenu = false
+                        controlsVisibilityState.showControls()
+                    }
+                )
+            }
         }
     }
 
@@ -657,6 +676,9 @@ internal fun MediaPlayerScreen(
     BackHandler {
         if (overlayView != null) {
             overlayView = null
+        } else if (showLuaScriptMenu) {
+            showLuaScriptMenu = false
+            controlsVisibilityState.showControls()
         } else if (isCustomizingControls) {
             exitControlCustomization()
         } else {
