@@ -38,30 +38,32 @@ class MetadataState(private val player: Player) {
     var currentChapter: VideoChapter? by mutableStateOf(null)
         private set
 
-    suspend fun observe() = coroutineScope {
-        updateMetadata()
-        updateChapters()
-        
-        // Background loop to auto-update current chapter during smooth playback 
-        // (so it updates even without seeking)
-        launch {
-            while (true) {
-                delay(1000)
-                if (player.isPlaying) {
-                    updateCurrentChapter()
+    suspend fun observe() {
+        coroutineScope {
+            updateMetadata()
+            updateChapters()
+            
+            // Background loop to auto-update current chapter during smooth playback 
+            // (so it updates even without seeking)
+            launch {
+                while (true) {
+                    delay(1000)
+                    if (player.isPlaying) {
+                        updateCurrentChapter()
+                    }
                 }
             }
-        }
 
-        player.listen { events ->
-            if (events.containsAny(Player.EVENT_MEDIA_METADATA_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-                updateMetadata()
-            }
-            if (events.containsAny(Player.EVENT_TIMELINE_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-                updateChapters()
-            }
-            if (events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_TIMELINE_CHANGED)) {
-                updateCurrentChapter()
+            player.listen { events ->
+                if (events.containsAny(Player.EVENT_MEDIA_METADATA_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                    updateMetadata()
+                }
+                if (events.containsAny(Player.EVENT_TIMELINE_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                    updateChapters()
+                }
+                if (events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_TIMELINE_CHANGED)) {
+                    updateCurrentChapter()
+                }
             }
         }
     }
