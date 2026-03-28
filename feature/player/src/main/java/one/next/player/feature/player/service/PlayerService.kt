@@ -1149,9 +1149,7 @@ class PlayerService : MediaSessionService() {
             }
 
         // --- ADD LUA ENGINE HERE ---
-        val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        
-        // Defaults to true and the SAF uri string you showed me if missing
+        val prefs = applicationContext.getSharedPreferences("lua_script_prefs", android.content.Context.MODE_PRIVATE)
         val isLuaEnabled = prefs.getBoolean("enable_lua", true) 
         val folderUriString = prefs.getString("script_folder_uri", "content://com.android.externalstorage.documents/tree/primary%3ANextPlayerScripts")
         
@@ -1160,10 +1158,13 @@ class PlayerService : MediaSessionService() {
         if (isLuaEnabled && folderUriString != null) {
             try {
                 if (folderUriString.contains("primary%3A")) {
-                    val folderName = android.net.Uri.decode(folderUriString.substringAfter("primary%3A"))
-                    val absolutePath = android.os.Environment.getExternalStorageDirectory().absolutePath + "/" + folderName
-                    scriptDir = File(absolutePath)
-                    Logger.info(TAG, "Lua Engine: Resolved Path -> $absolutePath")
+                    val parts = folderUriString.split("primary%3A")
+                    if (parts.size > 1) {
+                        val folderName = android.net.Uri.decode(parts[1])
+                        val absolutePath = android.os.Environment.getExternalStorageDirectory().absolutePath + "/" + folderName
+                        scriptDir = File(absolutePath)
+                        Logger.info(TAG, "Lua Engine: Resolved Path -> $absolutePath")
+                    }
                 } else {
                     val treeUri = Uri.parse(folderUriString)
                     val path = getPath(treeUri)
@@ -1281,7 +1282,7 @@ class PlayerService : MediaSessionService() {
                 val subtitleSpeed = mediaItem.mediaMetadata.subtitleSpeed ?: videoState?.subtitleSpeed
                 val videoWidth = video?.width
                 val videoHeight = video?.height
-                val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path 
+                val mediaPath = video?.path ?: videoState?.path ?: getPath(uri) ?: uri.path // FIXED: Only passing one argument
                 val isLocalUri = uri.scheme == ContentResolver.SCHEME_FILE || uri.scheme == ContentResolver.SCHEME_CONTENT
                 val isApproximateSeekEnabled = isLocalUri && mediaPath?.endsWith(".mkv", ignoreCase = true) == true
 
@@ -1562,7 +1563,7 @@ class PlayerService : MediaSessionService() {
         val path = runCatching {
             when (uri.scheme) {
                 ContentResolver.SCHEME_FILE -> uri.toFile().absolutePath
-                ContentResolver.SCHEME_CONTENT -> getPath(uri) 
+                ContentResolver.SCHEME_CONTENT -> getPath(uri) // FIXED: Only passing one argument
                 else -> null
             }
         }.getOrNull() ?: return null
@@ -1625,7 +1626,7 @@ class PlayerService : MediaSessionService() {
 
     private fun resolveLocalFile(uri: Uri): File? = when (uri.scheme) {
         ContentResolver.SCHEME_FILE -> runCatching { uri.toFile() }.getOrNull()
-        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File) 
+        ContentResolver.SCHEME_CONTENT -> getPath(uri)?.let(::File) // FIXED: Only passing one argument
         else -> null
     }?.takeIf(File::exists)
 
@@ -1731,7 +1732,7 @@ class PlayerService : MediaSessionService() {
         val videoState = mediaRepository.getVideoState(uri = mediaId)
         val dbExternalSubs = videoState?.externalSubs ?: emptyList()
 
-        val localSubs = (videoState?.path ?: getPath(uri))?.let { 
+        val localSubs = (videoState?.path ?: getPath(uri))?.let { // FIXED: Only passing one argument
             File(it).getLocalSubtitles(
                 context = this@PlayerService,
                 excludeSubsList = dbExternalSubs,
