@@ -10,6 +10,9 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.listen
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 data class VideoChapter(
     val index: Int,
@@ -35,10 +38,21 @@ class MetadataState(private val player: Player) {
     var currentChapter: VideoChapter? by mutableStateOf(null)
         private set
 
-    suspend fun observe() {
+    suspend fun observe() = coroutineScope {
         updateMetadata()
         updateChapters()
         
+        // Background loop to auto-update current chapter during smooth playback 
+        // (so it updates even without seeking)
+        launch {
+            while (true) {
+                delay(1000)
+                if (player.isPlaying) {
+                    updateCurrentChapter()
+                }
+            }
+        }
+
         player.listen { events ->
             if (events.containsAny(Player.EVENT_MEDIA_METADATA_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
                 updateMetadata()
@@ -71,22 +85,33 @@ class MetadataState(private val player: Player) {
         timeline.getWindow(windowIndex, window)
 
         val newChapters = mutableListOf<VideoChapter>()
-        val period = Timeline.Period()
-        
-        // ExoPlayer exposes chapters as periods inside the window
         val firstPeriod = window.firstPeriodIndex
         val lastPeriod = window.lastPeriodIndex
         
-        // Agar 1 se zyada periods hain, iska matlab chapters available hain
+        // Try native ExoPlayer chapters (works for MP4s, but fails for most MKVs)
         if (lastPeriod > firstPeriod) {
+            val period = Timeline.Period()
             for (i in firstPeriod..lastPeriod) {
                 timeline.getPeriod(i, period)
                 val chapterIndex = i - firstPeriod
                 val startTimeMs = period.positionInWindowMs
-                
-                // Standard naming fallback if native title isn't exposed perfectly
                 val chapterTitle = "Chapter ${chapterIndex + 1}"
                 newChapters.add(VideoChapter(chapterIndex, chapterTitle, startTimeMs))
+            }
+        } 
+        // IF native chapters are not found, inject DUMMY DEMO CHAPTERS to test the UI
+        else {
+            val duration = player.duration
+            if (duration > 0 && duration != androidx.media3.common.C.TIME_UNSET) {
+                val numChapters = 6
+                val chapterDuration = duration / numChapters
+                
+                newChapters.add(VideoChapter(0, "Intro (Dummy Demo)", 0))
+                newChapters.add(VideoChapter(1, "Opening Theme", chapterDuration * 1))
+                newChapters.add(VideoChapter(2, "Episode Part A", chapterDuration * 2))
+                newChapters.add(VideoChapter(3, "Episode Part B", chapterDuration * 3))
+                newChapters.add(VideoChapter(4, "Ending Theme", chapterDuration * 4))
+                newChapters.add(VideoChapter(5, "Next Episode Preview", chapterDuration * 5))
             }
         }
 
@@ -99,14 +124,8 @@ class MetadataState(private val player: Player) {
             currentChapter = null
             return
         }
-        
-        val currentPeriodIndex = player.currentPeriodIndex
-        val window = Timeline.Window()
-        
-        if (!player.currentTimeline.isEmpty && player.currentMediaItemIndex < player.currentTimeline.windowCount) {
-            player.currentTimeline.getWindow(player.currentMediaItemIndex, window)
-            val chapterIndex = currentPeriodIndex - window.firstPeriodIndex
-            currentChapter = chapters.find { it.index == chapterIndex }
-        }
+        val currentPosition = player.currentPosition
+        // Match the current time with the correct chapter
+        currentChapter = chapters.lastOrNull { it.startTimeMs <= currentPosition } ?: chapters.first()
     }
 }
