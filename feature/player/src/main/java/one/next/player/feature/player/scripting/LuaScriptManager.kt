@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
@@ -33,17 +34,19 @@ class LuaScriptManager(
     private fun registerReceiver() {
         receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
-                val scriptName = intent?.getStringExtra("script_name")
-                val isEnabled = intent?.getBooleanExtra("is_enabled", false) ?: false
-                
-                // Turant runtime execute hoga jab UI se switch ON hoga
-                if (isEnabled && scriptName != null) {
-                    executeScript(scriptName)
+                if (intent?.action == "one.next.player.ACTION_LUA_TOGGLED") {
+                    val scriptName = intent.getStringExtra("script_name")
+                    val isEnabled = intent.getBooleanExtra("is_enabled", false)
+                    
+                    if (isEnabled && scriptName != null) {
+                        Logger.info(TAG, "Runtime execution requested for: $scriptName")
+                        executeScript(scriptName)
+                    }
                 }
             }
         }
         val filter = IntentFilter("one.next.player.ACTION_LUA_TOGGLED")
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             context.registerReceiver(receiver, filter)
@@ -52,10 +55,13 @@ class LuaScriptManager(
 
     private fun executeScript(scriptName: String) {
         if (scriptDir == null || !scriptDir.exists()) return
+        
+        val prefs = context.getSharedPreferences("lua_script_prefs", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("enable_lua", true)) return // Stop if master is off
+
         val file = File(scriptDir, scriptName)
         if (file.exists()) {
             try {
-                Logger.info(TAG, "Runtime execution: ${file.name}")
                 val chunk = globals.loadfile(file.absolutePath)
                 chunk.call()
             } catch (e: Exception) {
@@ -88,10 +94,11 @@ class LuaScriptManager(
 
     fun loadScripts() {
         if (scriptDir == null || !scriptDir.exists()) return
+        val prefs = context.getSharedPreferences("lua_script_prefs", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("enable_lua", true)) return
+
         val files = scriptDir.listFiles { _, name -> name.endsWith(".lua") }
         if (files == null || files.isEmpty()) return
-
-        val prefs = context.getSharedPreferences("lua_script_prefs", Context.MODE_PRIVATE)
 
         files.forEach { file ->
             val isScriptEnabled = prefs.getBoolean("script_${file.name}", true)
@@ -112,7 +119,6 @@ class LuaScriptManager(
         }
     }
     
-    // Memory leak rokne ke liye
     fun release() {
         try {
             receiver?.let { context.unregisterReceiver(it) }
