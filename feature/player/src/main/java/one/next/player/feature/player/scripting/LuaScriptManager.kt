@@ -28,7 +28,6 @@ class LuaScriptManager(
     private fun setupNextPlayerLuaApi() {
         val npTable = LuaValue.tableOf()
 
-        // Lua function: np.set_speed(speed)
         npTable.set("set_speed", object : OneArgFunction() {
             override fun call(speed: LuaValue): LuaValue {
                 CoroutineScope(Dispatchers.Main).launch {
@@ -38,8 +37,6 @@ class LuaScriptManager(
             }
         })
 
-        // (Optional) If you want to keep the OSD message functionality without toasts, 
-        // you will need to implement a custom OSD UI later. For now, we can leave it as a log.
         npTable.set("osd_message", object : OneArgFunction() {
             override fun call(message: LuaValue): LuaValue {
                 Logger.info(TAG, "OSD Message: ${message.checkjstring()}")
@@ -52,24 +49,35 @@ class LuaScriptManager(
 
     fun loadScripts() {
         if (scriptDir == null || !scriptDir.exists()) {
-            Logger.info(TAG, "Lua scripts directory is null or does not exist. Lua engine disabled or no path set.")
+            Logger.info(TAG, "Lua scripts directory is null or does not exist.")
             return
         }
 
         val files = scriptDir.listFiles { _, name -> name.endsWith(".lua") }
 
         if (files == null || files.isEmpty()) {
-            Logger.info(TAG, "No .lua files found in the directory.")
+            Logger.info(TAG, "No .lua files found.")
             return
         }
 
+        // SharedPreferences access karenge scripts ka ON/OFF status check karne ke liye
+        val prefs = context.getSharedPreferences("lua_script_prefs", Context.MODE_PRIVATE)
+
         files.forEach { file ->
-            try {
-                Logger.info(TAG, "Loading script: ${file.name}")
-                val chunk = globals.loadfile(file.absolutePath)
-                chunk.call()
-            } catch (e: Exception) {
-                Logger.error(TAG, "Error executing script ${file.name}", e)
+            // Har script ki apni key hogi, jaise: "script_auto_speed_boost.lua"
+            // By default hum true rakhenge taaki pehli baar sab run hon.
+            val isScriptEnabled = prefs.getBoolean("script_${file.name}", true)
+            
+            if (isScriptEnabled) {
+                try {
+                    Logger.info(TAG, "Loading script: ${file.name}")
+                    val chunk = globals.loadfile(file.absolutePath)
+                    chunk.call()
+                } catch (e: Exception) {
+                    Logger.error(TAG, "Error executing script ${file.name}", e)
+                }
+            } else {
+                Logger.info(TAG, "Skipping disabled script: ${file.name}")
             }
         }
     }
