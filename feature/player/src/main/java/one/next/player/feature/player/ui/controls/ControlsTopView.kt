@@ -1,14 +1,23 @@
 package one.next.player.feature.player.ui.controls
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material3.Icon
@@ -17,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -27,11 +37,12 @@ import one.next.player.core.ui.R
 import one.next.player.core.ui.extensions.copy
 import one.next.player.feature.player.buttons.PlayerButton
 
-@OptIn(UnstableApi::class)
+@OptIn(UnstableApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun ControlsTopView(
     modifier: Modifier = Modifier,
     title: String,
+    chapterTitle: String? = null,
     isCustomizingControls: Boolean = false,
     isBackVisible: Boolean = true,
     isBackSelected: Boolean = false,
@@ -51,6 +62,7 @@ fun ControlsTopView(
     onPlaybackSpeedClick: () -> Unit = {},
     onPlaylistClick: () -> Unit = {},
     onLuaClick: () -> Unit = {},
+    onChapterClick: () -> Unit = {},
     onBackClick: () -> Unit,
 ) {
     val systemBarsPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout).asPaddingValues()
@@ -78,14 +90,53 @@ fun ControlsTopView(
                 )
             }
         }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        
+        // --- Title and Chapter Area ---
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(
+                    enabled = chapterTitle != null && !isCustomizingControls,
+                    onClick = onChapterClick
+                )
+                .padding(vertical = 4.dp, horizontal = 4.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                maxLines = if (chapterTitle != null) 1 else 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            
+            if (chapterTitle != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "Chapter",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = chapterTitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary, // Matches user's theme!
+                        maxLines = 1,
+                        modifier = Modifier.basicMarquee() // Auto scroll for long chapter names
+                    )
+                }
+            }
+        }
+        // ------------------------------
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
