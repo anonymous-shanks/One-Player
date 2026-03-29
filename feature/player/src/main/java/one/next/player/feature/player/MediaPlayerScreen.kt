@@ -229,7 +229,7 @@ internal fun MediaPlayerScreen(
 
     var overlayView by remember { mutableStateOf<OverlayView?>(null) }
     var showLuaScriptMenu by remember { mutableStateOf(false) }
-    var showChapterMenu by remember { mutableStateOf(false) } // State for Chapter Menu
+    var showChapterMenu by remember { mutableStateOf(false) }
     
     var isCustomizingControls by remember { mutableStateOf(false) }
     var customizingHiddenPlayerControls by remember { mutableStateOf(playerPreferences.hiddenPlayerControls) }
@@ -698,7 +698,7 @@ internal fun MediaPlayerScreen(
             }
             // -----------------------
 
-            // --- CHAPTER SIDE PANEL WITH HIGHLIGHT & AUTO-SCROLL ---
+            // --- CHAPTER SIDE PANEL WITH HIGHLIGHT, AUTO-SCROLL & TIME RANGES ---
             if (showChapterMenu) {
                 Box(
                     modifier = Modifier
@@ -796,7 +796,6 @@ internal fun MediaPlayerScreen(
                         ) {
                             items(chapters) { chapter ->
                                 val isSelected = chapter.index == currentChapterIndex
-                                // Native theme highlighting
                                 val bgColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
                                 val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
 
@@ -820,13 +819,19 @@ internal fun MediaPlayerScreen(
                                         color = textColor.copy(alpha = 0.7f),
                                         modifier = Modifier.width(32.dp)
                                     )
-                                    Text(
-                                        text = chapter.title,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = textColor,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = chapter.title,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = textColor
+                                        )
+                                        Text(
+                                            text = chapter.timeRangeString,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = textColor.copy(alpha = 0.7f)
+                                        )
+                                    }
                                 }
                             }
                         }
