@@ -17,8 +17,24 @@ import kotlinx.coroutines.launch
 data class VideoChapter(
     val index: Int,
     val title: String,
-    val startTimeMs: Long
-)
+    val startTimeMs: Long,
+    val endTimeMs: Long
+) {
+    // Ye function time ko "00:00 - 05:30" format mein convert karega
+    val timeRangeString: String
+        get() {
+            fun format(ms: Long): String {
+                if (ms < 0) return "..."
+                val totalSec = ms / 1000
+                val h = totalSec / 3600
+                val m = (totalSec % 3600) / 60
+                val s = totalSec % 60
+                return if (h > 0) String.format("%d:%02d:%02d", h, m, s)
+                else String.format("%02d:%02d", m, s)
+            }
+            return "${format(startTimeMs)} - ${format(endTimeMs)}"
+        }
+}
 
 @Composable
 fun rememberMetadataState(player: Player): MetadataState {
@@ -43,11 +59,10 @@ class MetadataState(private val player: Player) {
             updateMetadata()
             updateChapters()
             
-            // Background loop to auto-update current chapter during smooth playback 
-            // (so it updates even without seeking)
+            // Background loop jo check karega ki video kis chapter me hai
             launch {
                 while (true) {
-                    delay(1000)
+                    delay(500)
                     if (player.isPlaying) {
                         updateCurrentChapter()
                     }
@@ -90,30 +105,41 @@ class MetadataState(private val player: Player) {
         val firstPeriod = window.firstPeriodIndex
         val lastPeriod = window.lastPeriodIndex
         
-        // Try native ExoPlayer chapters (works for MP4s, but fails for most MKVs)
+        val duration = player.duration
+        val safeDuration = if (duration > 0 && duration != androidx.media3.common.C.TIME_UNSET) duration else 0L
+
+        // ExoPlayer agar internally chapters (MP4 etc) nikalta hai toh
         if (lastPeriod > firstPeriod) {
             val period = Timeline.Period()
             for (i in firstPeriod..lastPeriod) {
                 timeline.getPeriod(i, period)
                 val chapterIndex = i - firstPeriod
                 val startTimeMs = period.positionInWindowMs
+                
+                val endTimeMs = if (i < lastPeriod) {
+                    val nextPeriod = Timeline.Period()
+                    timeline.getPeriod(i + 1, nextPeriod)
+                    nextPeriod.positionInWindowMs
+                } else {
+                    safeDuration
+                }
+                
                 val chapterTitle = "Chapter ${chapterIndex + 1}"
-                newChapters.add(VideoChapter(chapterIndex, chapterTitle, startTimeMs))
+                newChapters.add(VideoChapter(chapterIndex, chapterTitle, startTimeMs, endTimeMs))
             }
         } 
-        // IF native chapters are not found, inject DUMMY DEMO CHAPTERS to test the UI
+        // Dummy Chapters for UI testing (Jise hum next step me Real MKV parser se replace karenge)
         else {
-            val duration = player.duration
-            if (duration > 0 && duration != androidx.media3.common.C.TIME_UNSET) {
+            if (safeDuration > 0) {
                 val numChapters = 6
-                val chapterDuration = duration / numChapters
+                val chapterDuration = safeDuration / numChapters
                 
-                newChapters.add(VideoChapter(0, "Intro (Dummy Demo)", 0))
-                newChapters.add(VideoChapter(1, "Opening Theme", chapterDuration * 1))
-                newChapters.add(VideoChapter(2, "Episode Part A", chapterDuration * 2))
-                newChapters.add(VideoChapter(3, "Episode Part B", chapterDuration * 3))
-                newChapters.add(VideoChapter(4, "Ending Theme", chapterDuration * 4))
-                newChapters.add(VideoChapter(5, "Next Episode Preview", chapterDuration * 5))
+                val titles = listOf("Intro", "Opening Theme", "Episode Part A", "Episode Part B", "Ending Theme", "Next Episode Preview")
+                for (i in 0 until numChapters) {
+                    val start = i * chapterDuration
+                    val end = if (i == numChapters - 1) safeDuration else (i + 1) * chapterDuration
+                    newChapters.add(VideoChapter(i, titles[i], start, end))
+                }
             }
         }
 
@@ -127,7 +153,7 @@ class MetadataState(private val player: Player) {
             return
         }
         val currentPosition = player.currentPosition
-        // Match the current time with the correct chapter
-        currentChapter = chapters.lastOrNull { it.startTimeMs <= currentPosition } ?: chapters.first()
+        // Check current position in which chapter range
+        currentChapter = chapters.lastOrNull { currentPosition >= it.startTimeMs } ?: chapters.first()
     }
 }
